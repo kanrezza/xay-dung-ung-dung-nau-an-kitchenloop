@@ -1,0 +1,43 @@
+name: btl_ltdd
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.3 <4.0.0' # Đã nâng min SDK để tương thích với các thư viện mới
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  easy_localization: ^3.0.3 # Thêm thư viện dịch thuật 
+  # --- BỘ FIREBASE TƯƠNG THÍCH (Đã test) ---
+  firebase_core: ^3.10.1  # Sửa từ 4.4.0 (không tồn tại) về bản chuẩn
+  firebase_auth: ^5.4.1   # Bản ổn định tương thích
+  cloud_firestore: ^5.6.2 # Bản ổn định tương thích
+  firebase_storage: ^12.4.2 # QUAN TRỌNG: Đã nâng lên bản 12 để hết lỗi
+  # ----------------------------------------
+
+  provider: ^6.1.5
+  shared_preferences: ^2.3.5
+  image_picker: ^1.1.2 
+  wakelock_plus: ^1.7.0
+  flutter_local_notifications: ^22.3.3
+  timezone: ^0.11.2
+  cached_network_image: ^3.4.1
+  uuid: ^4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  fake_cloud_firestore: ^3.1.0
+  firebase_auth_mocks: ^0.14.2
+
+flutter:
+  uses-material-design: true
+  assets:
+    - images/
+    - assets/langs/
