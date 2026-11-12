@@ -1,0 +1,388 @@
+[
+ {
+  "line": "200g thịt bò",
+  "structured": true,
+  "quantity": 200,
+  "unit": "g",
+  "name": "thịt bò"
+ },
+ {
+  "line": "2 quả trứng",
+  "structured": true,
+  "quantity": 2,
+  "unit": "quả",
+  "name": "trứng"
+ },
+ {
+  "line": "1/2 củ hành",
+  "structured": true,
+  "quantity": 0.5,
+  "unit": "củ",
+  "name": "hành"
+ },
+ {
+  "line": "1 1/2 chén bột mì",
+  "structured": true,
+  "quantity": 1.5,
+  "unit": "chén",
+  "name": "bột mì"
+ },
+ {
+  "line": "0,5 lít sữa tươi",
+  "structured": true,
+  "quantity": 0.5,
+  "unit": "lít",
+  "name": "sữa tươi"
+ },
+ {
+  "line": "1.5kg thịt gà",
+  "structured": true,
+  "quantity": 1.5,
+  "unit": "kg",
+  "name": "thịt gà"
+ },
+ {
+  "line": "500gr thịt ba chỉ",
+  "structured": true,
+  "quantity": 500,
+  "unit": "gr",
+  "name": "thịt ba chỉ"
+ },
+ {
+  "line": "2 muỗng canh nước mắm",
+  "structured": true,
+  "quantity": 2,
+  "unit": "muỗng canh",
+  "name": "nước mắm"
+ },
+ {
+  "line": "1 thìa cà phê muối",
+  "structured": true,
+  "quantity": 1,
+  "unit": "thìa cà phê",
+  "name": "muối"
+ },
+ {
+  "line": "3 tép tỏi băm",
+  "structured": true,
+  "quantity": 3,
+  "unit": "tép",
+  "name": "tỏi băm"
+ },
+ {
+  "line": "100ml nước dừa",
+  "structured": true,
+  "quantity": 100,
+  "unit": "ml",
+  "name": "nước dừa"
+ },
+ {
+  "line": "250 g bột năng",
+  "structured": true,
+  "quantity": 250,
+  "unit": "g",
+  "name": "bột năng"
+ },
+ {
+  "line": "1 củ cà rốt",
+  "structured": true,
+  "quantity": 1,
+  "unit": "củ",
+  "name": "cà rốt"
+ },
+ {
+  "line": "2 trái chanh",
+  "structured": true,
+  "quantity": 2,
+  "unit": "trái",
+  "name": "chanh"
+ },
+ {
+  "line": "1 hộp sữa đặc",
+  "structured": true,
+  "quantity": 1,
+  "unit": "hộp",
+  "name": "sữa đặc"
+ },
+ {
+  "line": "4 lát bánh mì",
+  "structured": true,
+  "quantity": 4,
+  "unit": "lát",
+  "name": "bánh mì"
+ },
+ {
+  "line": "3 con tôm",
+  "structured": true,
+  "quantity": 3,
+  "unit": "con",
+  "name": "tôm"
+ },
+ {
+  "line": "1 gói men nở",
+  "structured": true,
+  "quantity": 1,
+  "unit": "gói",
+  "name": "men nở"
+ },
+ {
+  "line": "2 bó rau muống",
+  "structured": true,
+  "quantity": 2,
+  "unit": "bó",
+  "name": "rau muống"
+ },
+ {
+  "line": "1 nhúm muối",
+  "structured": true,
+  "quantity": 1,
+  "unit": "nhúm",
+  "name": "muối"
+ },
+ {
+  "line": "5 lá chanh",
+  "structured": true,
+  "quantity": 5,
+  "unit": "lá",
+  "name": "chanh"
+ },
+ {
+  "line": "2 miếng đậu hũ",
+  "structured": true,
+  "quantity": 2,
+  "unit": "miếng",
+  "name": "đậu hũ"
+ },
+ {
+  "line": "1 bát cơm nguội",
+  "structured": true,
+  "quantity": 1,
+  "unit": "bát",
+  "name": "cơm nguội"
+ },
+ {
+  "line": "2 chén nước",
+  "structured": true,
+  "quantity": 2,
+  "unit": "chén",
+  "name": "nước"
+ },
+ {
+  "line": "1 lon bia",
+  "structured": true,
+  "quantity": 1,
+  "unit": "lon",
+  "name": "bia"
+ },
+ {
+  "line": "3 cái bánh tráng",
+  "structured": true,
+  "quantity": 3,
+  "unit": "cái",
+  "name": "bánh tráng"
+ },
+ {
+  "line": "1 cup flour",
+  "structured": true,
+  "quantity": 1,
+  "unit": "cup",
+  "name": "flour"
+ },
+ {
+  "line": "2 tbsp sugar",
+  "structured": true,
+  "quantity": 2,
+  "unit": "tbsp",
+  "name": "sugar"
+ },
+ {
+  "line": "1 tsp salt",
+  "structured": true,
+  "quantity": 1,
+  "unit": "tsp",
+  "name": "salt"
+ },
+ {
+  "line": "10 hạt tiêu",
+  "structured": true,
+  "quantity": 10,
+  "unit": "hạt",
+  "name": "tiêu"
+ },
+ {
+  "line": "1/4 muỗng cà phê tiêu",
+  "structured": true,
+  "quantity": 0.25,
+  "unit": "muỗng cà phê",
+  "name": "tiêu"
+ },
+ {
+  "line": "2 1/2 lít nước",
+  "structured": true,
+  "quantity": 2.5,
+  "unit": "lít",
+  "name": "nước"
+ },
+ {
+  "line": "750ml nước lọc",
+  "structured": true,
+  "quantity": 750,
+  "unit": "ml",
+  "name": "nước lọc"
+ },
+ {
+  "line": "3 trứng gà",
+  "structured": true,
+  "quantity": 3,
+  "unit": null,
+  "name": "trứng gà"
+ },
+ {
+  "line": "2 hành tây",
+  "structured": true,
+  "quantity": 2,
+  "unit": null,
+  "name": "hành tây"
+ },
+ {
+  "line": "20g bơ",
+  "structured": true,
+  "quantity": 20,
+  "unit": "g",
+  "name": "bơ"
+ },
+ {
+  "line": "1kg xương heo",
+  "structured": true,
+  "quantity": 1,
+  "unit": "kg",
+  "name": "xương heo"
+ },
+ {
+  "line": "300 gram thịt xay",
+  "structured": true,
+  "quantity": 300,
+  "unit": "gram",
+  "name": "thịt xay"
+ },
+ {
+  "line": "2 cây sả",
+  "structured": true,
+  "quantity": 2,
+  "unit": "cây",
+  "name": "sả"
+ },
+ {
+  "line": "1 chút đường",
+  "structured": true,
+  "quantity": 1,
+  "unit": "chút",
+  "name": "đường"
+ },
+ {
+  "line": "4 nhánh hành lá",
+  "structured": true,
+  "quantity": 4,
+  "unit": "nhánh",
+  "name": "hành lá"
+ },
+ {
+  "line": "2 muỗng đường",
+  "structured": true,
+  "quantity": 2,
+  "unit": "muỗng",
+  "name": "đường"
+ },
+ {
+  "line": "3 thìa dầu ăn",
+  "structured": true,
+  "quantity": 3,
+  "unit": "thìa",
+  "name": "dầu ăn"
+ },
+ {
+  "line": "1 tô bún",
+  "structured": true,
+  "quantity": 1,
+  "unit": "tô",
+  "name": "bún"
+ },
+ {
+  "line": "1 ly nước cam",
+  "structured": true,
+  "quantity": 1,
+  "unit": "ly",
+  "name": "nước cam"
+ },
+ {
+  "line": "6 quả cà chua",
+  "structured": true,
+  "quantity": 6,
+  "unit": "quả",
+  "name": "cà chua"
+ },
+ {
+  "line": "½ củ hành tây",
+  "structured": true,
+  "quantity": 0.5,
+  "unit": "củ",
+  "name": "hành tây"
+ },
+ {
+  "line": "- 2 quả trứng vịt",
+  "structured": true,
+  "quantity": 2,
+  "unit": "quả",
+  "name": "trứng vịt"
+ },
+ {
+  "line": "2   quả    trứng   gà",
+  "structured": true,
+  "quantity": 2,
+  "unit": "quả",
+  "name": "trứng gà"
+ },
+ {
+  "line": "200G thịt nạc",
+  "structured": true,
+  "quantity": 200,
+  "unit": "g",
+  "name": "thịt nạc"
+ },
+ {
+  "line": "muối vừa đủ",
+  "structured": false
+ },
+ {
+  "line": "tiêu xay tuỳ khẩu vị",
+  "structured": false
+ },
+ {
+  "line": "một ít hành lá",
+  "structured": false
+ },
+ {
+  "line": "rau thơm các loại",
+  "structured": false
+ },
+ {
+  "line": "2-3 quả ớt",
+  "structured": false
+ },
+ {
+  "line": "nước mắm, đường (tuỳ thích)",
+  "structured": false
+ },
+ {
+  "line": "gia vị",
+  "structured": false
+ },
+ {
+  "line": "hành tím (nhiều)",
+  "structured": false
+ },
+ {
+  "line": "Tùy ý",
+  "structured": false
+ }
+]
