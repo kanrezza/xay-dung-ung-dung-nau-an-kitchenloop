@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // Các trường bị thay đổi trong lần update này
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Không bao giờ được lưu mật khẩu trong Firestore.
+    function noPassword() {
+      return !request.resource.data.keys().hasAny(['password']);
+    }
+
+    // ===================== USERS =====================
+    // Hồ sơ chỉ chủ tài khoản đọc/ghi. Không ai liệt kê được collection này
+    // (bản cũ cho mọi người đã đăng nhập đọc email, số điện thoại của nhau).
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      // Tự đăng ký: không tự gán quyền admin, không tự mở khoá, không lưu mật khẩu.
+      allow create: if isOwner(userId)
+        && request.resource.data.get('role', 'blogger') == 'blogger'
+        && request.resource.data.get('isLocked', false) == false
+        && noPassword();
+
+      // role, isLocked chỉ quản trị viên đặt qua Firebase Console.
+      allow update: if isOwner(userId)
+        && !changedKeys().hasAny(['role', 'isLocked'])
+        && noPassword();
+
+      allow delete: if isOwner(userId);
+    }
+
+    // ===================== FOODS (dữ liệu của bản cũ, CHỈ ĐỌC) =====================
+    // KitchenLoop chỉ đọc món của chính mình để chuyển sang `recipes`
+    // (LegacyMigrationService). Không ai được ghi: dữ liệu cũ không bị sửa hay xoá
+    // từ ứng dụng (Constitution, mục Ràng buộc bổ sung).
+    match /foods/{foodId} {
+      allow read: if signedIn() && resource.data.authorId == request.auth.uid;
+      allow write: if false;
+
+      match /{sub=**} {
+        allow read, write: if false;
+      }
+    }
+
+    // ===================== RECIPES (KitchenLoop GĐ1) =====================
+    // Công thức riêng tư theo từng người dùng. Admin KHÔNG có đặc quyền đọc.
+
+    // Ràng buộc kích thước/kiểu của một công thức (xem specs/001-.../data-model.md).
+    function validRecipe(d) {
+      return d.title is string
+        && d.title.size() > 0 && d.title.size() <= 120
+        && d.baseServings is int
+        && d.baseServings >= 1 && d.baseServings <= 100
+        && d.ingredients is list
+        && d.ingredients.size() >= 1 && d.ingredients.size() <= 100
+        && d.steps is list
+        && d.steps.size() >= 1 && d.steps.size() <= 100
+        && d.get('tags', []).size() <= 20
+        && d.get('note', '').size() <= 2000;
+    }
+
+    match /recipes/{recipeId} {
+      // resource == null: đọc document chưa tồn tại trả về "không tồn tại"
+      // thay vì lỗi quyền.
+      allow get: if signedIn()
+        && (resource == null || resource.data.ownerId == request.auth.uid);
+
+      // Truy vấn danh sách bắt buộc có where('ownerId', '==', uid).
+      allow list: if signedIn()
+        && resource.data.ownerId == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && validRecipe(request.resource.data);
+
+      // ownerId bất biến.
+      allow update: if signedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && validRecipe(request.resource.data);
+
+      allow delete: if signedIn()
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ===================== COLLECTION CŨ KHÁC =====================
+    // meal_plans, followers, ... của bản cũ: KitchenLoop không dùng, khoá hoàn toàn.
+    // Mọi collection không được khai báo ở trên cũng bị từ chối mặc định.
+  }
+}
