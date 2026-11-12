@@ -1,0 +1,599 @@
+// Bộ chụp ảnh giao diện KitchenLoop với dữ liệu mẫu.
+//
+// Chạy:  flutter test screenshots/ui_screenshots_test.dart
+// Ảnh:   screenshots/out/*.png
+//
+// Dựng các màn hình THẬT của app (cùng theme, cùng widget) trong môi trường test
+// của Flutter, với Firestore giả, tài khoản giả và font Roboto/Material Icons thật
+// lấy từ Flutter SDK. Không cần thiết bị, không cần đăng nhập Firebase thật.
+// Màn hình đăng nhập không có ở đây vì nó cần Firebase thật để khởi tạo.
+//
+// Bộ chụp nằm ngoài thư mục test/ nên cần cho phép dùng các hàm chỉ-dành-cho-test.
+// ignore_for_file: invalid_use_of_visible_for_testing_member
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:btl_ltdd/app_theme.dart';
+import 'package:btl_ltdd/features/recipes/data/account_actions.dart';
+import 'package:btl_ltdd/features/recipes/data/cooking_session_store.dart';
+import 'package:btl_ltdd/features/recipes/data/recipe_repository.dart';
+import 'package:btl_ltdd/features/recipes/data/screen_awake.dart';
+import 'package:btl_ltdd/features/recipes/data/timer_notifier.dart';
+import 'package:btl_ltdd/features/recipes/models/cooking_session.dart';
+import 'package:btl_ltdd/features/recipes/models/ingredient.dart';
+import 'package:btl_ltdd/features/recipes/models/recipe.dart';
+import 'package:btl_ltdd/features/recipes/models/recipe_step.dart';
+import 'package:btl_ltdd/features/recipes/providers/cooking_mode_provider.dart';
+import 'package:btl_ltdd/features/recipes/providers/recipe_editor_provider.dart';
+import 'package:btl_ltdd/features/recipes/providers/recipe_list_provider.dart';
+import 'package:btl_ltdd/features/recipes/view/account_menu_screen.dart';
+import 'package:btl_ltdd/features/recipes/view/cooking_mode_screen.dart';
+import 'package:btl_ltdd/features/recipes/view/recipe_detail_screen.dart';
+import 'package:btl_ltdd/features/recipes/view/recipe_editor_screen.dart';
+import 'package:btl_ltdd/features/recipes/view/recipe_list_screen.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../test/support/cooking_fakes.dart';
+
+const _outDir = 'screenshots/out';
+final _shotKey = GlobalKey();
+
+// ------------------------------------------------------------------ font thật
+
+Future<void> _loadFonts() async {
+  final root = Platform.environment['FLUTTER_ROOT'] ?? '/opt/homebrew/share/flutter';
+  final dir = '$root/bin/cache/artifacts/material_fonts';
+  Future<ByteData> font(String name) async => ByteData.sublistView(await File('$dir/$name').readAsBytes());
+
+  final roboto = FontLoader('Roboto')
+    ..addFont(font('Roboto-Regular.ttf'))
+    ..addFont(font('Roboto-Medium.ttf'))
+    ..addFont(font('Roboto-Bold.ttf'));
+  await roboto.load();
+  final icons = FontLoader('MaterialIcons')..addFont(font('MaterialIcons-Regular.otf'));
+  await icons.load();
+}
+
+// ----------------------------------------------------------------- dữ liệu mẫu
+
+Map<String, dynamic> _ing(String id, String name, [double? q, String? unit]) =>
+    {'id': id, 'name': name, 'quantity': q, 'unit': unit, 'isPlaceholder': false};
+
+Map<String, dynamic> _step(String id, int order, String text, [int? sec]) =>
+    {'id': id, 'order': order, 'text': text, 'durationSec': sec, 'isPlaceholder': false};
+
+final Map<String, Map<String, dynamic>> _sampleRecipes = {
+  'thit-kho': {
+    'title': 'Thịt kho trứng',
+    'baseServings': 4,
+    'note': 'Kho lửa nhỏ để thịt mềm và thấm. Ngon hơn khi để qua đêm.',
+    'tags': ['cơm nhà', 'món mặn'],
+    'ingredients': [
+      _ing('a1', 'thịt ba chỉ', 500, 'g'),
+      _ing('a2', 'trứng vịt', 6, 'quả'),
+      _ing('a3', 'nước dừa', 400, 'ml'),
+      _ing('a4', 'nước mắm', 3, 'muỗng canh'),
+      _ing('a5', 'đường', 2, 'muỗng canh'),
+      _ing('a6', 'tỏi băm', 3, 'tép'),
+      _ing('a7', 'tiêu xay vừa đủ'),
+    ],
+    'steps': [
+      _step('b1', 1, 'Luộc trứng khoảng 10 phút, ngâm nước lạnh rồi bóc vỏ.', 600),
+      _step('b2', 2, 'Thịt cắt miếng vừa ăn, ướp với nước mắm, đường và tỏi trong 20 phút.', 1200),
+      _step('b3', 3, 'Thắng đường lấy màu, cho thịt vào đảo đến khi săn lại.'),
+      _step('b4', 4, 'Đổ nước dừa, cho trứng vào, kho lửa nhỏ khoảng 45 phút.', 2700),
+      _step('b5', 5, 'Nêm lại cho vừa ăn, rắc tiêu rồi tắt bếp.'),
+    ],
+  },
+  'ga-ran': {
+    'title': 'Gà rán giòn',
+    'baseServings': 2,
+    'tags': ['món sinh viên', 'nhanh'],
+    'ingredients': [_ing('c1', 'đùi gà', 4, 'cái'), _ing('c2', 'bột chiên giòn', 150, 'g'), _ing('c3', 'dầu ăn', 500, 'ml')],
+    'steps': [_step('d1', 1, 'Ướp gà với muối tiêu.', 900), _step('d2', 2, 'Lăn bột rồi chiên ngập dầu.', 720)],
+  },
+  'canh-chua': {
+    'title': 'Canh chua cá lóc',
+    'baseServings': 4,
+    'tags': ['ăn kiêng', 'cơm nhà'],
+    'ingredients': [_ing('e1', 'cá lóc', 1, 'con'), _ing('e2', 'me chua', 50, 'g'), _ing('e3', 'cà chua', 2, 'quả'), _ing('e4', 'giá đỗ', 100, 'g')],
+    'steps': [_step('f1', 1, 'Nấu nước me lọc lấy nước chua.'), _step('f2', 2, 'Cho cá vào nấu chín, thêm rau.', 600)],
+  },
+  'trung-chien': {
+    'title': 'Trứng chiên hành',
+    'baseServings': 1,
+    'tags': ['món sinh viên', 'nhanh'],
+    'ingredients': [_ing('g1', 'trứng gà', 2, 'quả'), _ing('g2', 'hành lá', 1, 'nhánh')],
+    'steps': [_step('h1', 1, 'Đánh trứng với hành rồi chiên vàng hai mặt.', 300)],
+  },
+  'pho-bo': {
+    'title': 'Phở bò',
+    'baseServings': 6,
+    'tags': ['cuối tuần'],
+    'ingredients': [_ing('i1', 'xương ống bò', 2, 'kg'), _ing('i2', 'bánh phở', 1, 'kg'), _ing('i3', 'thịt bò tái', 500, 'g')],
+    'steps': [_step('j1', 1, 'Hầm xương lấy nước dùng.', 10800), _step('j2', 2, 'Trụng bánh phở, xếp thịt, chan nước dùng.')],
+  },
+  'salad': {
+    'title': 'Salad ức gà',
+    'baseServings': 2,
+    'tags': ['ăn kiêng', 'nhanh'],
+    'ingredients': [_ing('k1', 'ức gà', 300, 'g'), _ing('k2', 'xà lách', 1, 'cây'), _ing('k3', 'dầu ô liu', 2, 'muỗng canh')],
+    'steps': [_step('l1', 1, 'Luộc ức gà rồi xé nhỏ.', 900), _step('l2', 2, 'Trộn với rau và sốt.')],
+  },
+};
+
+Future<void> _seed(FakeFirebaseFirestore db) async {
+  var minutesAgo = 0;
+  for (final entry in _sampleRecipes.entries) {
+    await db.collection('recipes').doc(entry.key).set({
+      ...entry.value,
+      'ownerId': 'alice',
+      'imageUrl': '',
+      'schemaVersion': 1,
+      'createdAt': DateTime(2026, 11, 1),
+      'updatedAt': DateTime(2026, 11, 12, 12).subtract(Duration(minutes: minutesAgo += 30)),
+    });
+  }
+}
+
+Recipe _recipeOf(String id) => Recipe.fromMap({..._sampleRecipes[id]!, 'ownerId': 'alice'}, id);
+
+// --------------------------------------------------------------------- khung chụp
+
+class _Env {
+  _Env() {
+    db = FakeFirebaseFirestore();
+    repo = FirestoreRecipeRepository(
+      firestore: db,
+      auth: MockFirebaseAuth(signedIn: true, mockUser: MockUser(uid: 'alice', email: 'an.nguyen@example.com')),
+    );
+  }
+
+  late final FakeFirebaseFirestore db;
+  late final FirestoreRecipeRepository repo;
+  final store = CookingSessionStore(uidGetter: () => 'alice');
+  final notifier = FakeTimerNotifier();
+  final awake = FakeScreenAwake();
+  final account = AccountActions(emailGetter: () => 'an.nguyen@example.com', signOutCallback: () async {});
+}
+
+Future<void> _pump(WidgetTester tester, _Env env, Widget home, {String locale = 'vi'}) async {
+  // flutter_test mặc định vẽ bóng đổ thành viền đen (debugDisableShadows); bật lại bóng thật
+  // để ảnh giống trên điện thoại. _capture trả lại giá trị cũ ngay sau khi chụp.
+  debugDisableShadows = false;
+  tester.view.physicalSize = const Size(1080, 2340);
+  tester.view.devicePixelRatio = 2.625;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  await tester.runAsync(() async {
+    await tester.pumpWidget(
+      EasyLocalization(
+        supportedLocales: const [Locale('vi'), Locale('en')],
+        path: 'assets/langs',
+        fallbackLocale: const Locale('vi'),
+        startLocale: Locale(locale),
+        saveLocale: false,
+        child: Builder(
+          builder: (context) => MultiProvider(
+            providers: [
+              Provider<RecipeRepository>.value(value: env.repo),
+              ChangeNotifierProvider(create: (_) => RecipeListProvider(repository: env.repo)),
+              Provider<AccountActions>.value(value: env.account),
+              Provider<CookingSessionStore>.value(value: env.store),
+              Provider<TimerNotifier>.value(value: env.notifier),
+              Provider<ScreenAwake>.value(value: env.awake),
+            ],
+            child: RepaintBoundary(
+              key: _shotKey,
+              child: MaterialApp(
+                debugShowCheckedModeBanner: false,
+                theme: buildAppTheme(),
+                localizationsDelegates: context.localizationDelegates,
+                supportedLocales: context.supportedLocales,
+                locale: context.locale,
+                home: home,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+  });
+  await _settle(tester);
+}
+
+/// Xen kẽ thời gian thực (cho luồng dữ liệu) và đồng hồ giả (cho khung hình).
+Future<void> _settle(WidgetTester tester, {int rounds = 6}) async {
+  await tester.runAsync(() => tester.pump());
+  for (var i = 0; i < rounds; i++) {
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+Future<void> _capture(WidgetTester tester, String name) async {
+  await tester.pump();
+  final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(_shotKey));
+  await tester.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: 2.0);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    await Directory(_outDir).create(recursive: true);
+    await File('$_outDir/$name.png').writeAsBytes(bytes!.buffer.asUint8List());
+  });
+  // Trả lại trước khi test kết thúc (flutter_test kiểm tra cờ này ngay sau thân test).
+  debugDisableShadows = true;
+}
+
+CookingModeProvider _cooking(_Env env, String recipeId, DateTime Function() now) => CookingModeProvider(
+      recipe: _recipeOf(recipeId),
+      store: env.store,
+      notifier: env.notifier,
+      awake: env.awake,
+      now: now,
+      tickInterval: const Duration(days: 1),
+      timerTitle: (_) => 'Hết giờ!',
+      timerBody: (step) => step.text,
+    );
+
+Future<void> _closeCooking(WidgetTester tester, CookingModeProvider p) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  p.dispose();
+}
+
+// ------------------------------------------------------------------------ ảnh
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    await EasyLocalization.ensureInitialized();
+    await _loadFonts();
+  });
+
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  Widget list() => RecipeListScreen(loginBuilder: (_) => const Scaffold());
+
+  testWidgets('01 danh sách công thức', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    await _pump(tester, env, list());
+    await _capture(tester, '01_danh_sach');
+  });
+
+  testWidgets('02 lọc theo thẻ', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    await _pump(tester, env, list());
+    await tester.ensureVisible(find.byKey(const Key('tag_chip_mon sinh vien')));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('tag_chip_mon sinh vien')));
+    await _settle(tester);
+    await _capture(tester, '02_loc_theo_the');
+  });
+
+  testWidgets('03 tìm không dấu', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    await _pump(tester, env, list());
+    await tester.enterText(find.byKey(const Key('search_field')), 'ga');
+    await _settle(tester);
+    await _capture(tester, '03_tim_khong_dau');
+  });
+
+  testWidgets('04 không có kết quả', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    await _pump(tester, env, list());
+    await tester.enterText(find.byKey(const Key('search_field')), 'sushi');
+    await _settle(tester);
+    await _capture(tester, '04_khong_ket_qua');
+  });
+
+  testWidgets('05 danh sách trống', (tester) async {
+    final env = _Env();
+    await _pump(tester, env, list());
+    await _capture(tester, '05_danh_sach_trong');
+  });
+
+  testWidgets('06 chi tiết công thức', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    await _pump(tester, env, const RecipeDetailScreen(recipeId: 'thit-kho'));
+    await _capture(tester, '06_chi_tiet');
+  });
+
+  testWidgets('07 đổi khẩu phần', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    await _pump(tester, env, const RecipeDetailScreen(recipeId: 'thit-kho'));
+    await tester.tap(find.byKey(const Key('servings_plus')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('servings_plus')));
+    await tester.pump();
+    await tester.drag(find.byType(ListView).first, const Offset(0, -260));
+    await _settle(tester);
+    await _capture(tester, '07_doi_khau_phan');
+  });
+
+  testWidgets('08 soạn thảo công thức', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    await _pump(
+      tester,
+      env,
+      ChangeNotifierProvider(
+        create: (_) => RecipeEditorProvider(repository: env.repo, existing: _recipeOf('thit-kho')),
+        child: const RecipeEditorScreen(tagSuggestions: ['món sinh viên', 'nhanh', 'ăn kiêng']),
+      ),
+    );
+    await tester.drag(find.byType(ListView).first, const Offset(0, -420));
+    await _settle(tester);
+    await _capture(tester, '08_soan_thao');
+  });
+
+  testWidgets('09 soạn thảo báo lỗi', (tester) async {
+    final env = _Env();
+    await _pump(
+      tester,
+      env,
+      ChangeNotifierProvider(
+        create: (_) => RecipeEditorProvider(repository: env.repo),
+        child: const RecipeEditorScreen(),
+      ),
+    );
+    await tester.enterText(find.widgetWithText(TextField, 'Tên nguyên liệu'), 'trứng');
+    await tester.enterText(find.widgetWithText(TextField, 'Số lượng'), 'abc');
+    await tester.tap(find.byKey(const Key('save_recipe')));
+    await _settle(tester);
+    await _capture(tester, '09_soan_thao_bao_loi');
+  });
+
+  testWidgets('10 chế độ nấu với hẹn giờ', (tester) async {
+    final env = _Env();
+    var clock = DateTime(2026, 11, 12, 18);
+    final p = _cooking(env, 'thit-kho', () => clock);
+    await _pump(tester, env, ChangeNotifierProvider<CookingModeProvider>.value(value: p, child: const CookingModeScreen()));
+    await tester.tap(find.byKey(const Key('cook_next')));
+    await _settle(tester);
+    await tester.tap(find.text('Bắt đầu hẹn giờ'));
+    await _settle(tester);
+    clock = clock.add(const Duration(minutes: 7, seconds: 25));
+    p.onTick();
+    await _settle(tester);
+    await _capture(tester, '10_che_do_nau');
+    await _closeCooking(tester, p);
+  });
+
+  testWidgets('11 hết giờ', (tester) async {
+    final env = _Env();
+    var clock = DateTime(2026, 11, 12, 18);
+    final p = _cooking(env, 'thit-kho', () => clock);
+    await _pump(tester, env, ChangeNotifierProvider<CookingModeProvider>.value(value: p, child: const CookingModeScreen()));
+    await tester.tap(find.text('Bắt đầu hẹn giờ'));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('cook_next')));
+    await _settle(tester);
+    clock = clock.add(const Duration(minutes: 11));
+    p.onTick();
+    await _settle(tester);
+    await _capture(tester, '11_het_gio');
+    await _closeCooking(tester, p);
+  });
+
+  testWidgets('12 nguyên liệu khi đang nấu', (tester) async {
+    final env = _Env();
+    final p = _cooking(env, 'thit-kho', () => DateTime(2026, 11, 12, 18));
+    await _pump(tester, env, ChangeNotifierProvider<CookingModeProvider>.value(value: p, child: const CookingModeScreen()));
+    await tester.tap(find.byKey(const Key('open_ingredients')));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('servings_plus')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('servings_plus')));
+    await _settle(tester);
+    await _capture(tester, '12_nguyen_lieu_khi_nau');
+    await _closeCooking(tester, p);
+  });
+
+  testWidgets('13 tiếp tục nấu dở', (tester) async {
+    final env = _Env();
+    await tester.runAsync(() => env.store.save(CookingSession(
+          recipeId: 'thit-kho',
+          stepIndex: 3,
+          servings: 4,
+          startedAt: DateTime(2026, 11, 12, 17),
+        )));
+    final p = _cooking(env, 'thit-kho', () => DateTime(2026, 11, 12, 18));
+    await _pump(tester, env, ChangeNotifierProvider<CookingModeProvider>.value(value: p, child: const CookingModeScreen()));
+    await tester.pump(const Duration(milliseconds: 400));
+    await _capture(tester, '13_tiep_tuc_nau_do');
+    await _closeCooking(tester, p);
+  });
+
+  testWidgets('14 nấu xong', (tester) async {
+    final env = _Env();
+    final p = _cooking(env, 'trung-chien', () => DateTime(2026, 11, 12, 18));
+    await _pump(tester, env, ChangeNotifierProvider<CookingModeProvider>.value(value: p, child: const CookingModeScreen()));
+    await tester.tap(find.byKey(const Key('cook_next')));
+    await _settle(tester);
+    await _capture(tester, '14_nau_xong');
+    await _closeCooking(tester, p);
+  });
+
+  testWidgets('15 tài khoản', (tester) async {
+    final env = _Env();
+    await _pump(tester, env, AccountMenuScreen(actions: env.account, loginBuilder: (_) => const Scaffold()));
+    await _capture(tester, '15_tai_khoan');
+  });
+
+  testWidgets('16 danh sách bằng tiếng Anh', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    await _pump(tester, env, list(), locale: 'en');
+    await _capture(tester, '16_danh_sach_tieng_anh');
+  });
+
+  testWidgets('17 công thức chuyển từ dữ liệu cũ', (tester) async {
+    final env = _Env();
+    await env.db.collection('recipes').doc('cu').set({
+      'ownerId': 'alice',
+      'title': 'Bò kho bánh mì',
+      'baseServings': 4,
+      'imageUrl': '',
+      'tags': ['món cũ'],
+      'ingredients': [
+        _ing('m0', 'thịt bò nạm', 1, 'kg'),
+        _ing('m1', 'sả', 3, 'cây'),
+        {'id': 'm2', 'name': 'gia vị bò kho vừa đủ', 'isPlaceholder': false},
+      ],
+      'steps': [_step('n0', 1, 'Ướp thịt với gia vị.', 1800), _step('n1', 2, 'Hầm lửa nhỏ đến khi mềm.', 5400)],
+      'schemaVersion': 1,
+      'legacy': {
+        'title': 'Bò kho bánh mì',
+        'ingredients': ['1kg thịt bò nạm', '3 cây sả', 'gia vị bò kho vừa đủ'],
+        'instructions': '1. Ướp thịt với gia vị\n2. Hầm lửa nhỏ đến khi mềm',
+        'sourceCollection': 'foods',
+        'extra': {'time': '2 giờ', 'difficulty': 'Trung bình'},
+      },
+    });
+    await _pump(tester, env, const RecipeDetailScreen(recipeId: 'cu'));
+    final page = find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    await tester.scrollUntilVisible(find.byKey(const Key('legacy_section')), 300, scrollable: page);
+    await tester.tap(find.byKey(const Key('legacy_section')));
+    await _settle(tester);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await _settle(tester);
+    await _capture(tester, '17_noi_dung_goc');
+  });
+
+  // Bảng tổng hợp: xếp các ảnh đã chụp thành lưới 3 cột kèm chú thích (chạy sau cùng).
+  testWidgets('00 bảng tổng hợp', (tester) async {
+    const captions = {
+      '01_danh_sach': 'Danh sách công thức',
+      '02_loc_theo_the': 'Lọc theo thẻ',
+      '03_tim_khong_dau': 'Tìm không dấu: "ga" ra "gà"',
+      '04_khong_ket_qua': 'Không có kết quả',
+      '05_danh_sach_trong': 'Danh sách trống',
+      '06_chi_tiet': 'Chi tiết công thức',
+      '07_doi_khau_phan': 'Đổi khẩu phần từ 4 lên 6 người',
+      '08_soan_thao': 'Sửa công thức, gợi ý thẻ',
+      '09_soan_thao_bao_loi': 'Báo lỗi khi lưu',
+      '10_che_do_nau': 'Chế độ nấu, hẹn giờ đang chạy',
+      '11_het_gio': 'Cảnh báo hết giờ',
+      '12_nguyen_lieu_khi_nau': 'Nguyên liệu khi nấu (6 người)',
+      '13_tiep_tuc_nau_do': 'Tiếp tục nấu dở',
+      '14_nau_xong': 'Nấu xong',
+      '15_tai_khoan': 'Tài khoản',
+      '16_danh_sach_tieng_anh': 'Giao diện tiếng Anh',
+      '17_noi_dung_goc': 'Công thức chuyển từ dữ liệu cũ',
+    };
+    final names = captions.keys.where((n) => File('$_outDir/$n.png').existsSync()).toList();
+    final images = <String, ui.Image>{};
+    await tester.runAsync(() async {
+      for (final n in names) {
+        final codec = await ui.instantiateImageCodec(await File('$_outDir/$n.png').readAsBytes());
+        images[n] = (await codec.getNextFrame()).image;
+      }
+    });
+
+    const cols = 3;
+    const tileW = 300.0;
+    const tileH = 650.0;
+    const perSheet = 9;
+    for (var sheet = 0; sheet * perSheet < names.length; sheet++) {
+      final part = names.skip(sheet * perSheet).take(perSheet).toList();
+      final rows = (part.length / cols).ceil();
+      tester.view.physicalSize = Size(cols * (tileW + 24) + 24, rows * (tileH + 64) + 90);
+      tester.view.devicePixelRatio = 1.0;
+      debugDisableShadows = false;
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: _shotKey,
+          child: Directionality(
+            textDirection: ui.TextDirection.ltr,
+            child: Container(
+              color: const Color(0xFFF2F0F4),
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                    child: Text(
+                      'KitchenLoop — giao diện (${sheet + 1}/${(names.length / perSheet).ceil()}) · dữ liệu mẫu',
+                      style: const TextStyle(fontFamily: 'Roboto', fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF1D1B20)),
+                    ),
+                  ),
+                  Wrap(
+                    children: [
+                      for (final n in part)
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: tileW,
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: tileW,
+                                  height: tileH,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFFFFF),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: const Color(0xFFCAC4D0)),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: RawImage(image: images[n], fit: BoxFit.contain),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '${n.substring(0, 2)}. ${captions[n]}',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontFamily: 'Roboto', fontSize: 17, color: Color(0xFF1D1B20)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(_shotKey));
+      await tester.runAsync(() async {
+        final image = await boundary.toImage(pixelRatio: 1.5);
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+        await File('$_outDir/00_tong_hop_${sheet + 1}.png').writeAsBytes(bytes!.buffer.asUint8List());
+      });
+      debugDisableShadows = true;
+    }
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+    for (final img in images.values) {
+      img.dispose();
+    }
+  });
+
+  // Dùng để bỏ cảnh báo "import không dùng" khi cần chỉnh nhanh dữ liệu mẫu.
+  test('dữ liệu mẫu hợp lệ', () {
+    for (final id in _sampleRecipes.keys) {
+      expect(_recipeOf(id).validate(), isEmpty, reason: id);
+    }
+    expect(const Ingredient(id: 'x', name: 'x').validate(), isEmpty);
+    expect(const RecipeStep(id: 'x', order: 1, text: 'x').validate(), isEmpty);
+  });
+}
