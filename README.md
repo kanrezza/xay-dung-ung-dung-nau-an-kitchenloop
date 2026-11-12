@@ -123,7 +123,3 @@ và `.specify/`.
 - **Công cụ AI:** một phần mã nguồn, kiểm thử và tài liệu của dự án được viết với sự hỗ trợ của công cụ AI.
   Tác giả đã đọc, kiểm thử và chịu trách nhiệm về toàn bộ nội dung. Nếu giảng viên có quy định riêng về việc
   sử dụng công cụ AI, hãy làm theo quy định đó.
-
-## Giấy phép
-
-Chưa chọn giấy phép. Thêm file `LICENSE` trước khi công khai nếu bạn muốn cho phép người khác sử dụng lại.
