@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Storage của KitchenLoop: chỉ ảnh công thức, mỗi người chỉ ghi vào thư mục của mình.
+//
+// Ảnh hiển thị trong app qua "download URL" (có token riêng cho từng file) nên không
+// cần quyền đọc công khai ở đây. Các thư mục của bản cũ (avatars, food_images, video
+// trong foods/) bị khoá ghi; link tải đã phát ra trước đó vẫn xem được.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Đường dẫn do RecipeRepository.uploadImage tạo:
+    // foods/{uid}/recipes/{recipeId}/{thời điểm}.jpg
+    match /foods/{userId}/recipes/{recipeId}/{fileName} {
+      allow read: if isOwner(userId);
+      // Ảnh đã được nén (tối đa 1600px, chất lượng 85) nên 5 MB là dư.
+      allow create, update: if isOwner(userId)
+        && request.resource.contentType.matches('image/(jpeg|png|gif|webp|heic|heif)')
+        && request.resource.size < 5 * 1024 * 1024;
+      // Cho phép chủ sở hữu xoá ảnh (dọn ảnh khi xoá/đổi ảnh công thức).
+      allow delete: if isOwner(userId);
+    }
+
+    // Mọi đường dẫn khác bị từ chối mặc định.
+  }
+}
