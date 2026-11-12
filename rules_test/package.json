@@ -1,0 +1,15 @@
+{
+  "name": "kitchenloop-rules-test",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Kiểm thử Firestore và Storage rules của KitchenLoop trên emulator",
+  "scripts": {
+    "pretest": "cp ../storage.rules storage.rules",
+    "test": "firebase emulators:exec --only firestore,storage --project demo-rules \"node test.mjs\""
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.14.1"
+  }
+}
