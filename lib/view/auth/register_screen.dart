@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../features/recipes/view/recipe_list_screen.dart';
+import '../../features/home/view/app_shell.dart';
 import '../../providers/user_provider.dart';
 import 'auth_widgets.dart';
 import 'login_screen.dart';
@@ -65,7 +65,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Vào thẳng danh sách công thức của chính mình (giống luồng đăng nhập).
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => RecipeListScreen(loginBuilder: (_) => const LoginScreen())),
+        MaterialPageRoute(builder: (_) => AppShell(loginBuilder: (_) => const LoginScreen())),
         (route) => false,
       );
     } else {

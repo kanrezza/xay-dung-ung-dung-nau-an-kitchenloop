@@ -237,7 +237,16 @@
     "tag_duplicate": "This tag is already added",
     "clear_filters": "Clear filters",
     "search_clear": "Clear search",
-    "add_price_kcal": "Add price, kcal"
+    "add_price_kcal": "Add price, kcal",
+    "time_m": "{} min",
+    "time_h": "{} h",
+    "time_hm": "{} h {} min",
+    "add_to_plan": "Add to meal plan",
+    "info_servings": {
+      "one": "{} serving",
+      "other": "{} servings"
+    },
+    "added_to_plan": "Added to {}, {}"
   },
   "account": {
     "title": "Account",
@@ -275,5 +284,81 @@
     "privacy_note": "Admins can't see users' recipes.",
     "err_load": "Couldn't load accounts. This account may not have admin rights.",
     "err_update": "Couldn't update, please try again."
+  },
+  "nav": {
+    "home": "Home",
+    "recipes": "Recipes",
+    "planner": "Meal plan",
+    "shopping": "Shopping"
+  },
+  "home": {
+    "greeting_morning": "Good morning",
+    "greeting_afternoon": "Good afternoon",
+    "greeting_evening": "Good evening",
+    "subtitle": "What's cooking today?",
+    "today": "Today's meals",
+    "today_empty": "Nothing planned for today yet.",
+    "plan_now": "Plan meals",
+    "continue": "Continue cooking",
+    "suggestions": "Ideas for you",
+    "see_all": "See all",
+    "stat_recipes": "Recipes",
+    "stat_week": "Meals this week",
+    "stat_shopping": "To buy",
+    "empty_recipes": "Add your first recipe to start cooking with KitchenLoop.",
+    "add_recipe": "Add recipe"
+  },
+  "planner": {
+    "title": "Weekly meal plan",
+    "this_week": "This week",
+    "week_range": "{} – {}",
+    "day_0": "Monday",
+    "day_1": "Tuesday",
+    "day_2": "Wednesday",
+    "day_3": "Thursday",
+    "day_4": "Friday",
+    "day_5": "Saturday",
+    "day_6": "Sunday",
+    "today": "Today",
+    "slot_breakfast": "Breakfast",
+    "slot_lunch": "Lunch",
+    "slot_dinner": "Dinner",
+    "add": "Add dish",
+    "pick_recipe": "Choose a recipe",
+    "search": "Search recipes",
+    "servings": "Servings",
+    "servings_n": {
+      "one": "{} serving",
+      "other": "{} servings"
+    },
+    "no_recipes": "You have no recipes yet. Add a recipe first.",
+    "err_full": "This week is full (63 dishes).",
+    "err_save": "Couldn't save the meal plan, please try again.",
+    "remove": "Remove from plan",
+    "choose_day": "Day",
+    "choose_slot": "Meal",
+    "confirm": "Add to meal plan",
+    "week_count": {
+      "one": "{} dish",
+      "other": "{} dishes"
+    },
+    "deleted_recipe": "This recipe was deleted"
+  },
+  "shopping": {
+    "title": "Shopping list",
+    "progress": "{} of {} bought",
+    "hide_checked": "Hide bought",
+    "clear_checked": "Uncheck all",
+    "empty": "Nothing to buy yet. Plan your week and the list builds itself.",
+    "go_plan": "Open meal plan",
+    "add_extra": "Add item",
+    "extra_name": "Item",
+    "extra_quantity": "Quantity",
+    "extra_unit": "Unit",
+    "extra_section": "Extra items",
+    "from": "For: {}",
+    "missing": "Couldn't count ingredients for: {} (recipe deleted).",
+    "all_done": "All bought!",
+    "err_save": "Couldn't save, please try again."
   }
 }

@@ -1,4 +1,4 @@
-import 'package:btl_ltdd/features/recipes/view/recipe_list_screen.dart';
+import 'package:btl_ltdd/features/home/view/app_shell.dart';
 import 'package:btl_ltdd/view/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,6 +10,9 @@ import 'package:easy_localization/easy_localization.dart'; // 1. MỚI THÊM: Im
 
 import 'app_theme.dart';
 import 'features/admin/data/admin_repository.dart';
+import 'features/planner/data/planner_repository.dart';
+import 'features/planner/providers/meal_plan_provider.dart';
+import 'features/planner/providers/shopping_provider.dart';
 import 'services/auth_service.dart';
 import 'firebase_options.dart';
 import 'features/recipes/data/account_actions.dart';
@@ -98,6 +101,15 @@ class MyApp extends StatelessWidget {
             migrationRunner: ctx.read<LegacyMigrationService>().migrateIfNeeded,
           ),
         ),
+        // Thực đơn tuần và danh sách đi chợ (spec 003). Đi chợ theo tuần đang xem trong thực đơn.
+        Provider<PlannerRepository>(
+          create: (_) => FirestorePlannerRepository(firestore: FirebaseFirestore.instance, auth: FirebaseAuth.instance),
+        ),
+        ChangeNotifierProvider(create: (ctx) => MealPlanProvider(repository: ctx.read<PlannerRepository>())),
+        ChangeNotifierProxyProvider<MealPlanProvider, ShoppingProvider>(
+          create: (ctx) => ShoppingProvider(repository: ctx.read<PlannerRepository>()),
+          update: (_, plan, shopping) => shopping!..attachWeek(plan.weekStart),
+        ),
         // Chế độ nấu: phiên nấu dở (cục bộ), báo hết giờ ở nền, giữ màn hình sáng.
         Provider<CookingSessionStore>(
           create: (_) => CookingSessionStore(uidGetter: () => FirebaseAuth.instance.currentUser?.uid),
@@ -126,8 +138,10 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'KitchenLoop',
         theme: buildAppTheme(),
+        darkTheme: buildAppTheme(brightness: Brightness.dark),
+        themeMode: ThemeMode.system,
         home: signedIn
-            ? RecipeListScreen(loginBuilder: (_) => const LoginScreen())
+            ? AppShell(loginBuilder: (_) => const LoginScreen())
             : const LoginScreen(),
       ),
     );

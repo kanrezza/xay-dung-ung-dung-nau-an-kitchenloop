@@ -138,10 +138,10 @@ void main() {
     expect(pubspec, isNot(contains('fl_chart')));
   });
 
-  test('sau đăng nhập và sau đăng ký đều vào danh sách công thức', () {
+  test('sau đăng nhập và sau đăng ký đều vào khung chính (AppShell, spec 003)', () {
     for (final path in ['lib/view/auth/login_screen.dart', 'lib/view/auth/register_screen.dart']) {
       final source = File(path).readAsStringSync();
-      expect(source, contains('RecipeListScreen'), reason: path);
+      expect(source, contains('AppShell'), reason: path);
       expect(source, isNot(contains('BloggerHomeScreen')), reason: path);
       expect(source, isNot(contains('AdminHomeScreen')), reason: path);
     }

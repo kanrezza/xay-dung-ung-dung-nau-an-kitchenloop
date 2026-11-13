@@ -233,7 +233,15 @@
     "tag_duplicate": "Thẻ này đã có",
     "clear_filters": "Xoá bộ lọc",
     "search_clear": "Xoá từ khoá",
-    "add_price_kcal": "Thêm giá, kcal"
+    "add_price_kcal": "Thêm giá, kcal",
+    "time_m": "{} phút",
+    "time_h": "{} giờ",
+    "time_hm": "{} giờ {} phút",
+    "add_to_plan": "Thêm vào thực đơn",
+    "info_servings": {
+      "other": "{} người"
+    },
+    "added_to_plan": "Đã thêm vào {}, bữa {}"
   },
   "account": {
     "title": "Tài khoản",
@@ -271,5 +279,79 @@
     "privacy_note": "Quản trị viên không xem được công thức của người dùng.",
     "err_load": "Không tải được danh sách tài khoản. Tài khoản này có thể chưa có quyền quản trị.",
     "err_update": "Không cập nhật được, hãy thử lại."
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "recipes": "Công thức",
+    "planner": "Thực đơn",
+    "shopping": "Đi chợ"
+  },
+  "home": {
+    "greeting_morning": "Chào buổi sáng",
+    "greeting_afternoon": "Chào buổi chiều",
+    "greeting_evening": "Chào buổi tối",
+    "subtitle": "Hôm nay nấu gì nhỉ?",
+    "today": "Hôm nay ăn gì",
+    "today_empty": "Chưa có món nào cho hôm nay.",
+    "plan_now": "Lên thực đơn",
+    "continue": "Nấu tiếp",
+    "suggestions": "Gợi ý cho bạn",
+    "see_all": "Xem tất cả",
+    "stat_recipes": "Công thức",
+    "stat_week": "Món tuần này",
+    "stat_shopping": "Cần mua",
+    "empty_recipes": "Thêm công thức đầu tiên để bắt đầu nấu cùng KitchenLoop.",
+    "add_recipe": "Thêm công thức"
+  },
+  "planner": {
+    "title": "Thực đơn tuần",
+    "this_week": "Tuần này",
+    "week_range": "{} – {}",
+    "day_0": "Thứ 2",
+    "day_1": "Thứ 3",
+    "day_2": "Thứ 4",
+    "day_3": "Thứ 5",
+    "day_4": "Thứ 6",
+    "day_5": "Thứ 7",
+    "day_6": "Chủ nhật",
+    "today": "Hôm nay",
+    "slot_breakfast": "Sáng",
+    "slot_lunch": "Trưa",
+    "slot_dinner": "Tối",
+    "add": "Thêm món",
+    "pick_recipe": "Chọn công thức",
+    "search": "Tìm công thức",
+    "servings": "Số người ăn",
+    "servings_n": {
+      "other": "{} người"
+    },
+    "no_recipes": "Bạn chưa có công thức nào. Hãy thêm công thức trước.",
+    "err_full": "Tuần này đã đủ 63 món.",
+    "err_save": "Không lưu được thực đơn, hãy thử lại.",
+    "remove": "Bỏ khỏi thực đơn",
+    "choose_day": "Ngày",
+    "choose_slot": "Bữa",
+    "confirm": "Thêm vào thực đơn",
+    "week_count": {
+      "other": "{} món"
+    },
+    "deleted_recipe": "Công thức này đã bị xoá"
+  },
+  "shopping": {
+    "title": "Đi chợ",
+    "progress": "Đã mua {} / {}",
+    "hide_checked": "Ẩn món đã mua",
+    "clear_checked": "Bỏ đánh dấu tất cả",
+    "empty": "Chưa có gì để mua. Lên thực đơn tuần, danh sách sẽ tự tạo.",
+    "go_plan": "Mở thực đơn",
+    "add_extra": "Thêm món lẻ",
+    "extra_name": "Tên món",
+    "extra_quantity": "Số lượng",
+    "extra_unit": "Đơn vị",
+    "extra_section": "Món thêm",
+    "from": "Cho: {}",
+    "missing": "Không tính được nguyên liệu cho: {} (công thức đã bị xoá).",
+    "all_done": "Đã mua đủ rồi!",
+    "err_save": "Không lưu được, hãy thử lại."
   }
 }

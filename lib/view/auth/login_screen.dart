@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:btl_ltdd/features/recipes/view/recipe_list_screen.dart';
+import 'package:btl_ltdd/features/home/view/app_shell.dart';
 import 'package:btl_ltdd/providers/user_provider.dart';
 import 'package:btl_ltdd/view/auth/auth_widgets.dart';
 import 'package:btl_ltdd/view/auth/forgot_password_screen.dart';
@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => RecipeListScreen(loginBuilder: (_) => const LoginScreen()),
+          builder: (_) => AppShell(loginBuilder: (_) => const LoginScreen()),
         ),
         (route) => false,
       );

@@ -78,15 +78,31 @@ void main() {
     });
   });
 
-  test('admin: chỉ thư mục data/ được import Firebase (Constitution IV)', () {
-    final files = Directory('lib/features/admin')
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.dart') && !f.path.contains('/data/'))
-        .toList();
-    expect(files.length, greaterThanOrEqualTo(4), reason: 'bộ quét file có vấn đề');
-    for (final f in files) {
-      expect(networkImportsIn(f.path), isEmpty, reason: f.path);
+  // Constitution IV cho mọi feature khác ngoài recipes (admin: spec 002; home, planner: spec 003).
+  for (final feature in ['admin', 'home', 'planner']) {
+    test('$feature: chỉ thư mục data/ được import Firebase (Constitution IV)', () {
+      final files = Directory('lib/features/$feature')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart') && !f.path.contains('/data/'))
+          .toList();
+      expect(files.length, greaterThanOrEqualTo(3), reason: 'bộ quét file có vấn đề');
+      for (final f in files) {
+        expect(networkImportsIn(f.path), isEmpty, reason: f.path);
+      }
+    });
+  }
+
+  test('thực đơn và danh sách đi chợ: logic gộp, tuần, provider không phụ thuộc mạng', () {
+    for (final path in [
+      'lib/features/planner/domain/shopping_builder.dart',
+      'lib/features/planner/domain/week.dart',
+      'lib/features/planner/models/week_plan.dart',
+      'lib/features/planner/models/shopping_state.dart',
+      'lib/features/planner/providers/meal_plan_provider.dart',
+      'lib/features/planner/providers/shopping_provider.dart',
+    ]) {
+      expect(networkImportsIn(path), isEmpty, reason: path);
     }
   });
 
