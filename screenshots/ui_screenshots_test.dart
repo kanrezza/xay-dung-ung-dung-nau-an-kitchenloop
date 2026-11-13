@@ -16,6 +16,12 @@ import 'dart:ui' as ui;
 import 'package:btl_ltdd/app_theme.dart';
 import 'package:btl_ltdd/features/admin/data/admin_repository.dart';
 import 'package:btl_ltdd/features/admin/view/admin_screen.dart';
+import 'package:btl_ltdd/features/home/view/app_shell.dart';
+import 'package:btl_ltdd/features/planner/data/planner_repository.dart';
+import 'package:btl_ltdd/features/planner/models/shopping_state.dart';
+import 'package:btl_ltdd/features/planner/models/week_plan.dart';
+import 'package:btl_ltdd/features/planner/providers/meal_plan_provider.dart';
+import 'package:btl_ltdd/features/planner/providers/shopping_provider.dart';
 import 'package:btl_ltdd/features/recipes/data/account_actions.dart';
 import 'package:btl_ltdd/features/recipes/data/cooking_session_store.dart';
 import 'package:btl_ltdd/features/recipes/data/recipe_repository.dart';
@@ -44,6 +50,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../test/support/cooking_fakes.dart';
+import '../test/support/planner_fakes.dart';
 
 const _outDir = 'screenshots/out';
 final _shotKey = GlobalKey();
@@ -169,9 +176,14 @@ class _Env {
   final notifier = FakeTimerNotifier();
   final awake = FakeScreenAwake();
   final account = AccountActions(emailGetter: () => 'an.nguyen@example.com', signOutCallback: () async {});
+  final planner = FakePlannerRepository();
 }
 
-Future<void> _pump(WidgetTester tester, _Env env, Widget home, {String locale = 'vi'}) async {
+/// "Bây giờ" cố định cho ảnh chụp: thứ 4, 11/11/2026 lúc 18 giờ (bữa tối, tuần 9/11).
+final _now = DateTime(2026, 11, 11, 18);
+final _week = DateTime(2026, 11, 9);
+
+Future<void> _pump(WidgetTester tester, _Env env, Widget home, {String locale = 'vi', Brightness brightness = Brightness.light}) async {
   // flutter_test mặc định vẽ bóng đổ thành viền đen (debugDisableShadows); bật lại bóng thật
   // để ảnh giống trên điện thoại. _capture trả lại giá trị cũ ngay sau khi chụp.
   debugDisableShadows = false;
@@ -198,12 +210,18 @@ Future<void> _pump(WidgetTester tester, _Env env, Widget home, {String locale = 
               Provider<CookingSessionStore>.value(value: env.store),
               Provider<TimerNotifier>.value(value: env.notifier),
               Provider<ScreenAwake>.value(value: env.awake),
+              Provider<PlannerRepository>.value(value: env.planner),
+              ChangeNotifierProvider(create: (_) => MealPlanProvider(repository: env.planner, now: () => _now)),
+              ChangeNotifierProxyProvider<MealPlanProvider, ShoppingProvider>(
+                create: (_) => ShoppingProvider(repository: env.planner),
+                update: (_, plan, shop) => shop!..attachWeek(plan.weekStart),
+              ),
             ],
             child: RepaintBoundary(
               key: _shotKey,
               child: MaterialApp(
                 debugShowCheckedModeBanner: false,
-                theme: buildAppTheme(),
+                theme: buildAppTheme(brightness: brightness),
                 localizationsDelegates: context.localizationDelegates,
                 supportedLocales: context.supportedLocales,
                 locale: context.locale,
@@ -329,7 +347,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('servings_plus')));
     await tester.pump();
-    await tester.drag(find.byType(ListView).first, const Offset(0, -260));
+    // Màn chi tiết cuộn bằng CustomScrollView (ảnh bìa + nội dung).
+    await tester.drag(find.byType(CustomScrollView).first, const Offset(0, -620));
     await _settle(tester);
     await _capture(tester, '07_doi_khau_phan');
   });
@@ -464,6 +483,65 @@ void main() {
     await _capture(tester, '18_quan_tri');
   });
 
+  /// Thực đơn mẫu cho tuần 9/11: vài bữa trong tuần, hôm nay (thứ 4) có bữa trưa và tối.
+  void seedPlan(_Env env) {
+    MealEntry e(String id, int day, MealSlot slot, String recipeId, String title, int servings) =>
+        MealEntry(id: id, day: day, slot: slot, recipeId: recipeId, title: title, servings: servings);
+    env.planner.weeks[_week] = WeekPlan(weekStart: _week, entries: [
+      e('m1', 0, MealSlot.dinner, 'canh-chua', 'Canh chua cá lóc', 4),
+      e('m2', 1, MealSlot.breakfast, 'trung-chien', 'Trứng chiên hành', 2),
+      e('m3', 2, MealSlot.lunch, 'salad', 'Salad ức gà', 2),
+      e('m4', 2, MealSlot.dinner, 'thit-kho', 'Thịt kho trứng', 4),
+      e('m5', 4, MealSlot.dinner, 'ga-ran', 'Gà rán giòn', 2),
+      e('m6', 6, MealSlot.lunch, 'pho-bo', 'Phở bò', 6),
+    ]);
+    env.planner.shopping[_week] = const ShoppingState(checked: {'nuoc mam|muỗng canh', 'trung vit|quả'});
+  }
+
+  Future<void> settleShell(WidgetTester tester) async {
+    for (var i = 0; i < 6; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 40)));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('19 trang chủ', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    seedPlan(env);
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold()));
+    await settleShell(tester);
+    await _capture(tester, '19_trang_chu');
+  });
+
+  testWidgets('20 thực đơn tuần', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    seedPlan(env);
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initialTab: 2));
+    await settleShell(tester);
+    await _capture(tester, '20_thuc_don_tuan');
+  });
+
+  testWidgets('21 đi chợ', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    seedPlan(env);
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initialTab: 3));
+    await settleShell(tester);
+    await _capture(tester, '21_di_cho');
+  });
+
+  testWidgets('22 chế độ tối', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    seedPlan(env);
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initialTab: 1), brightness: Brightness.dark);
+    await settleShell(tester);
+    await _capture(tester, '22_che_do_toi');
+  });
+
   testWidgets('16 danh sách bằng tiếng Anh', (tester) async {
     final env = _Env();
     await _seed(env.db);
@@ -495,11 +573,11 @@ void main() {
       },
     });
     await _pump(tester, env, const RecipeDetailScreen(recipeId: 'cu'));
-    final page = find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
+    final page = find.descendant(of: find.byType(CustomScrollView), matching: find.byType(Scrollable)).first;
     await tester.scrollUntilVisible(find.byKey(const Key('legacy_section')), 300, scrollable: page);
     await tester.tap(find.byKey(const Key('legacy_section')));
     await _settle(tester);
-    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.drag(find.byType(CustomScrollView).first, const Offset(0, -400));
     await _settle(tester);
     await _capture(tester, '17_noi_dung_goc');
   });
@@ -525,6 +603,10 @@ void main() {
       '16_danh_sach_tieng_anh': 'Giao diện tiếng Anh',
       '17_noi_dung_goc': 'Công thức chuyển từ dữ liệu cũ',
       '18_quan_tri': 'Quản trị (chỉ tài khoản admin)',
+      '19_trang_chu': 'Trang chủ',
+      '20_thuc_don_tuan': 'Thực đơn tuần',
+      '21_di_cho': 'Đi chợ (tự gộp nguyên liệu)',
+      '22_che_do_toi': 'Chế độ tối',
     };
     final names = captions.keys.where((n) => File('$_outDir/$n.png').existsSync()).toList();
     final images = <String, ui.Image>{};

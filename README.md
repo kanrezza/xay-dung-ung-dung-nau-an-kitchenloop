@@ -7,10 +7,10 @@ KitchenLoop được phát triển từ một ứng dụng nấu ăn có sẵn (
 xã hội (cộng đồng, theo dõi, bình luận, khám phá, quản trị), tập trung vào vòng nấu ăn hằng ngày của
 **một người**. Mã của phiên bản cũ đã được gỡ khỏi dự án.
 
-> **Trạng thái:** giai đoạn 1 (công thức có cấu trúc + chế độ nấu). Các giai đoạn sau (thực đơn tuần,
-> danh sách đi chợ, tủ lạnh, thống kê) chưa làm — xem [tầm nhìn](#tầm-nhìn).
+> **Trạng thái:** xong giai đoạn 1 (công thức + chế độ nấu) và giai đoạn 2 (thực đơn tuần + danh sách đi
+> chợ). Tủ lạnh và thống kê chưa làm — xem [tầm nhìn](#tầm-nhìn).
 
-## Tính năng (giai đoạn 1)
+## Tính năng
 
 | Tính năng | Mô tả |
 |---|---|
@@ -22,6 +22,10 @@ xã hội (cộng đồng, theo dõi, bình luận, khám phá, quản trị), t
 | **Chuyển dữ liệu cũ** | Công thức của bản cũ được chuyển sang dạng có cấu trúc, không mất dữ liệu, giữ nguyên văn để đối chiếu. |
 | **Dùng khi mất mạng** | Xem công thức, nấu, hẹn giờ khi offline; thay đổi được đồng bộ khi có mạng lại (hiện nhãn "Đang đồng bộ"). |
 | **Riêng tư theo tài khoản** | Mỗi người chỉ thấy và sửa công thức của mình. |
+| **Trang chủ** | Lời chào, số liệu nhanh, món của hôm nay, món đang nấu dở (nấu tiếp), gợi ý món. |
+| **Thực đơn tuần** | Xếp món vào bữa sáng/trưa/tối từ thứ 2 tới chủ nhật, chọn số người ăn, chuyển tuần ([spec 003](specs/003-meal-plan-shopping-ui/spec.md)). |
+| **Danh sách đi chợ tự động** | Gộp nguyên liệu của cả tuần theo số người ăn (g/kg, ml/lít được quy đổi, quả/tép làm tròn lên), tick đã mua, thêm món lẻ. |
+| **Giao diện** | 4 tab, lưới công thức có ảnh bìa (ảnh minh hoạ theo loại món khi chưa có ảnh), chế độ sáng/tối theo máy. |
 | **Hai ngôn ngữ** | Tiếng Việt (mặc định) và tiếng Anh. |
 | **Quản trị tối thiểu** | Tài khoản quản trị xem số tài khoản, tìm kiếm, khoá/mở khoá tài khoản. Không xem được công thức của ai ([spec 002](specs/002-admin-minimal/spec.md)). |
 
@@ -44,6 +48,8 @@ lib/
 │   ├── data/                     # nơi DUY NHẤT nói chuyện với Firebase: repository, migration, thông báo
 │   ├── providers/                # trạng thái giao diện (danh sách, soạn thảo, chế độ nấu)
 │   └── view/                     # màn hình và widget
+├── features/home/                # khung 4 tab, trang chủ, ảnh bìa minh hoạ (spec 003)
+├── features/planner/             # thực đơn tuần, danh sách đi chợ (spec 003)
 ├── features/admin/               # quản trị tối thiểu (spec 002)
 ├── view/auth/                    # đăng nhập, đăng ký, quên mật khẩu
 └── models/ providers/ services/  # chỉ phần phục vụ đăng nhập: UserModel, UserProvider, AuthService
