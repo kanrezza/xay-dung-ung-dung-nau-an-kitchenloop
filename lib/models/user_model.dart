@@ -51,7 +51,8 @@ class UserModel {
       isLocked: data['isLocked'] ?? false,
       favorites: List<String>.from(data['favorites'] ?? []),
       followers: List<String>.from(data['followers'] ?? []),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      // Hồ sơ tạo ngoài app (script, Console) có thể thiếu createdAt: không để đăng nhập lỗi.
+      createdAt: data['createdAt'] is Timestamp ? (data['createdAt'] as Timestamp).toDate() : DateTime.now(),
       username: data['username'] ?? '',
     );
   }

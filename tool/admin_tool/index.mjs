@@ -144,8 +144,20 @@ switch (command) {
         updatedAt: FieldValue.serverTimestamp(),
       });
     }
-    // Đánh dấu đã chuyển dữ liệu cũ để app không chạy bước chuyển cho tài khoản demo.
-    batch.set(db.collection('users').doc(user.uid), { recipeMigratedAt: FieldValue.serverTimestamp() }, { merge: true });
+    // Hồ sơ users: tạo đủ trường như app tạo khi đăng ký (thiếu createdAt thì app cũ không đọc được),
+    // và đánh dấu đã chuyển dữ liệu cũ để app không chạy bước chuyển cho tài khoản demo.
+    const userRef = db.collection('users').doc(user.uid);
+    const profile = (await userRef.get()).exists ? {} : {
+      id: user.uid,
+      name: user.displayName || user.email.split('@')[0],
+      email: user.email,
+      username: user.email.split('@')[0],
+      role: 'blogger',
+      isLocked: false,
+      phoneNumber: '', address: '', avatarUrl: null, bio: '', favorites: [], followers: [],
+      createdAt: FieldValue.serverTimestamp(),
+    };
+    batch.set(userRef, { ...profile, recipeMigratedAt: FieldValue.serverTimestamp() }, { merge: true });
     await batch.commit();
     console.log(`Đã thêm ${Object.keys(demoRecipes).length} công thức mẫu cho ${email}.`);
     break;
