@@ -24,6 +24,9 @@ Firestore/Storage rules MUST theo nguyên tắc quyền tối thiểu: người 
 nâng quyền (`role`), không sửa dữ liệu của người khác, chỉ thao tác trên UID của chính mình.
 Mọi thay đổi rules MUST được kiểm thử trên Firebase emulator trước khi deploy. Khoá bí mật,
 `google-services.json` và file cấu hình nhạy cảm MUST NOT được commit.
+Quyền quản trị MUST chỉ được cấp bằng custom claim `admin` của Firebase Auth (đặt bằng
+script chạy với khoá quản trị, ngoài ứng dụng); MUST NOT dựa vào trường do client ghi được
+(như `users.role`). Quản trị viên MUST NOT đọc được công thức riêng của người dùng.
 Lý do: bản app cũ từng có lỗ hổng tự nâng quyền admin và chiếm món ăn.
 
 ### IV. Kiến trúc tách lớp
@@ -47,7 +50,8 @@ Lý do: người dùng nấu ăn trong bếp, mạng thường không ổn đị
 ### VII. Đơn giản và đúng trọng tâm
 Áp dụng YAGNI: không thêm tính năng ngoài spec đang làm. Phần mạng xã hội của app cũ
 (follow, bình luận, cộng đồng) MUST NOT được đưa vào KitchenLoop trừ khi có spec và sửa đổi
-constitution này cho phép.
+constitution này cho phép. Phần quản trị chỉ ở mức tối thiểu (thống kê tài khoản, khoá/mở
+khoá tài khoản) và MUST đi qua spec riêng.
 Lý do: giữ app tập trung vào vòng nấu ăn và khác biệt rõ với bài tham khảo.
 
 ## Ràng buộc bổ sung
@@ -67,6 +71,12 @@ Lý do: giữ app tập trung vào vòng nấu ăn và khác biệt rõ với b�
   và việc có dùng công cụ AI hỗ trợ.
 - Chỉ commit/push khi chủ dự án yêu cầu.
 
+## Lịch sử sửa đổi
+
+- **1.1.0** (2026-11-14, MINOR): cho phép phần quản trị tối thiểu (spec 002). Mở rộng
+  nguyên tắc III (quyền admin chỉ qua custom claim, admin không đọc công thức riêng) và
+  VII (phạm vi quản trị). Không ảnh hưởng spec 001.
+
 ## Governance
 
 Constitution này có hiệu lực cao hơn các quy ước khác trong dự án. Sửa đổi MUST được ghi
@@ -76,4 +86,4 @@ kể; PATCH khi chỉnh lời văn. Mọi plan và pull request MUST kiểm tra 
 tắc trên; vi phạm phải được giải thích và chấp thuận rõ ràng. Hướng dẫn vận hành hằng
 ngày cho Claude nằm ở `CLAUDE.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-12
+**Version**: 1.1.0 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-14
