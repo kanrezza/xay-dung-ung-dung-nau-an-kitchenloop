@@ -14,6 +14,8 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:btl_ltdd/app_theme.dart';
+import 'package:btl_ltdd/features/admin/data/admin_repository.dart';
+import 'package:btl_ltdd/features/admin/view/admin_screen.dart';
 import 'package:btl_ltdd/features/recipes/data/account_actions.dart';
 import 'package:btl_ltdd/features/recipes/data/cooking_session_store.dart';
 import 'package:btl_ltdd/features/recipes/data/recipe_repository.dart';
@@ -159,6 +161,10 @@ class _Env {
 
   late final FakeFirebaseFirestore db;
   late final FirestoreRecipeRepository repo;
+  late final admin = FirestoreAdminRepository(
+    firestore: db,
+    auth: MockFirebaseAuth(signedIn: true, mockUser: MockUser(uid: 'alice', customClaim: {'admin': true})),
+  );
   final store = CookingSessionStore(uidGetter: () => 'alice');
   final notifier = FakeTimerNotifier();
   final awake = FakeScreenAwake();
@@ -188,6 +194,7 @@ Future<void> _pump(WidgetTester tester, _Env env, Widget home, {String locale = 
               Provider<RecipeRepository>.value(value: env.repo),
               ChangeNotifierProvider(create: (_) => RecipeListProvider(repository: env.repo)),
               Provider<AccountActions>.value(value: env.account),
+              Provider<AdminRepository>.value(value: env.admin),
               Provider<CookingSessionStore>.value(value: env.store),
               Provider<TimerNotifier>.value(value: env.notifier),
               Provider<ScreenAwake>.value(value: env.awake),
@@ -437,6 +444,26 @@ void main() {
     await _capture(tester, '15_tai_khoan');
   });
 
+  testWidgets('18 quản trị', (tester) async {
+    final env = _Env();
+    final now = DateTime(2026, 11, 14);
+    Future<void> user(String id, String name, String email, int daysAgo, {bool locked = false}) =>
+        env.db.collection('users').doc(id).set({
+          'name': name,
+          'email': email,
+          'createdAt': now.subtract(Duration(days: daysAgo)), // fake_cloud_firestore lưu thành Timestamp
+          'isLocked': locked,
+        });
+    await user('alice', 'An Nguyễn', 'an.nguyen@example.com', 120);
+    await user('u2', 'Bình Trần', 'binh.tran@example.com', 2);
+    await user('u3', 'Chi Lê', 'chi.le@example.com', 30, locked: true);
+    await user('u4', 'Dũng Phạm', 'dung.pham@example.com', 5);
+    await user('u5', 'Em Võ', 'em.vo@example.com', 60);
+    await user('u6', '', 'tai.khoan.cu@example.com', 400);
+    await _pump(tester, env, AdminScreen(now: () => now));
+    await _capture(tester, '18_quan_tri');
+  });
+
   testWidgets('16 danh sách bằng tiếng Anh', (tester) async {
     final env = _Env();
     await _seed(env.db);
@@ -497,6 +524,7 @@ void main() {
       '15_tai_khoan': 'Tài khoản',
       '16_danh_sach_tieng_anh': 'Giao diện tiếng Anh',
       '17_noi_dung_goc': 'Công thức chuyển từ dữ liệu cũ',
+      '18_quan_tri': 'Quản trị (chỉ tài khoản admin)',
     };
     final names = captions.keys.where((n) => File('$_outDir/$n.png').existsSync()).toList();
     final images = <String, ui.Image>{};

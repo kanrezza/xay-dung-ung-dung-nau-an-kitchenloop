@@ -54,3 +54,6 @@ rules_test/*-debug.log
 
 # Ảnh giao diện sinh ra bởi: flutter test screenshots/ui_screenshots_test.dart
 screenshots/out/
+tool/admin_tool/node_modules/
+tool/admin_tool/service-account.json
+*service-account*.json

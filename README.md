@@ -23,6 +23,7 @@ xã hội (cộng đồng, theo dõi, bình luận, khám phá, quản trị), t
 | **Dùng khi mất mạng** | Xem công thức, nấu, hẹn giờ khi offline; thay đổi được đồng bộ khi có mạng lại (hiện nhãn "Đang đồng bộ"). |
 | **Riêng tư theo tài khoản** | Mỗi người chỉ thấy và sửa công thức của mình. |
 | **Hai ngôn ngữ** | Tiếng Việt (mặc định) và tiếng Anh. |
+| **Quản trị tối thiểu** | Tài khoản quản trị xem số tài khoản, tìm kiếm, khoá/mở khoá tài khoản. Không xem được công thức của ai ([spec 002](specs/002-admin-minimal/spec.md)). |
 
 ## Công nghệ
 
@@ -43,10 +44,12 @@ lib/
 │   ├── data/                     # nơi DUY NHẤT nói chuyện với Firebase: repository, migration, thông báo
 │   ├── providers/                # trạng thái giao diện (danh sách, soạn thảo, chế độ nấu)
 │   └── view/                     # màn hình và widget
-├── view/auth/                    # đăng nhập, đăng ký, quên mật khẩu (giữ từ bản cũ)
+├── features/admin/               # quản trị tối thiểu (spec 002)
+├── view/auth/                    # đăng nhập, đăng ký, quên mật khẩu
 └── models/ providers/ services/  # chỉ phần phục vụ đăng nhập: UserModel, UserProvider, AuthService
 firestore.rules                   # quy tắc bảo mật (chỉ chủ sở hữu đọc/ghi công thức)
 rules_test/                       # kiểm thử rules trên Firebase Emulator
+tool/admin_tool/                  # script cấp quyền quản trị và tạo dữ liệu demo (chạy trên máy)
 specs/001-structured-recipe-cooking-mode/   # đặc tả, kế hoạch, danh sách task (Spec Kit)
 ```
 
@@ -74,6 +77,26 @@ firebase deploy --only firestore:rules,storage --project <id-project-cua-ban>
 
 Đăng nhập bằng **email** và mật khẩu (Firebase Auth tự giữ phiên, mở lại app không cần đăng nhập lại).
 Ứng dụng không lưu mật khẩu ở bất kỳ đâu; hồ sơ người dùng chỉ chủ tài khoản đọc được.
+
+## Quản trị và tài khoản demo
+
+Quyền quản trị là **custom claim** `admin` của Firebase Auth, chỉ cấp được bằng script với khoá
+quản trị (không có nút nào trong app tự cấp quyền được).
+
+1. Firebase Console → Project settings → Service accounts → **Generate new private key**, lưu
+   thành `tool/admin_tool/service-account.json` (đã có trong `.gitignore`, **không commit**).
+2. Đăng ký tài khoản trong app như người dùng bình thường.
+3. Chạy:
+
+```bash
+cd tool/admin_tool && npm install
+node index.mjs grant <email>        # cấp quyền quản trị
+node index.mjs seed-demo <email>    # thêm 6 công thức mẫu cho tài khoản demo
+node index.mjs list                 # xem ai đang là quản trị viên
+node index.mjs revoke <email>       # thu quyền
+```
+
+Mở lại màn hình Tài khoản trong app sẽ thấy mục **Quản trị**.
 
 ## Kiểm thử
 

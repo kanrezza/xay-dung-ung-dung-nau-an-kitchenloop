@@ -1,0 +1,13 @@
+{
+  "name": "kitchenloop-admin-tool",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Cấp/thu quyền quản trị KitchenLoop (custom claim) và tạo dữ liệu demo (spec 002)",
+  "scripts": {
+    "admin": "node index.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}
