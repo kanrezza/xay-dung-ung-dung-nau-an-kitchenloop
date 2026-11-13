@@ -194,6 +194,31 @@ await t('kim mở khoá: đọc lại được công thức, dữ liệu còn ng
 })());
 await t('người không có hồ sơ users vẫn dùng recipes bình thường', assertSucceeds(setDoc(doc(env.authenticatedContext('nouser').firestore(), 'recipes/rn'), recipe('nouser'))));
 
+console.log('\n== thực đơn tuần, đi chợ (spec 003) ==');
+const plan = (owner, over = {}) => ({ ownerId: owner, weekStart: '2026-11-09', entries: [{ id: 'e', day: 1, slot: 'dinner', recipeId: 'r', title: 'Phở', servings: 2 }], ...over });
+const shop = (owner, over = {}) => ({ ownerId: owner, weekStart: '2026-11-09', checked: ['trung|quả'], extras: [], ...over });
+await t('alice tạo thực đơn tuần của mình', assertSucceeds(setDoc(doc(alice, 'weekPlans/alice_2026-11-09'), plan('alice'))));
+await t('alice đọc thực đơn của mình', assertSucceeds(getDoc(doc(alice, 'weekPlans/alice_2026-11-09'))));
+await t('alice đọc tuần chưa có (không lỗi quyền)', assertSucceeds(getDoc(doc(alice, 'weekPlans/alice_2026-11-16'))));
+await t('alice sửa thực đơn của mình', assertSucceeds(setDoc(doc(alice, 'weekPlans/alice_2026-11-09'), plan('alice', { entries: [] }))));
+await t('bob không đọc được thực đơn của alice', assertFails(getDoc(doc(bob, 'weekPlans/alice_2026-11-09'))));
+await t('bob không ghi đè thực đơn của alice', assertFails(setDoc(doc(bob, 'weekPlans/alice_2026-11-09'), plan('alice'))));
+await t('bob không tạo tài liệu mang id của alice', assertFails(setDoc(doc(bob, 'weekPlans/alice_2026-11-23'), plan('bob', { weekStart: '2026-11-23' }))));
+await t('id phải khớp weekStart', assertFails(setDoc(doc(alice, 'weekPlans/alice_2026-11-09'), plan('alice', { weekStart: '2026-11-16' }))));
+await t('id sai định dạng bị từ chối', assertFails(setDoc(doc(alice, 'weekPlans/alice_tuan-nay'), plan('alice', { weekStart: 'tuan-nay' }))));
+await t('quá 63 món một tuần bị từ chối', assertFails(setDoc(doc(alice, 'weekPlans/alice_2026-11-09'), plan('alice', { entries: Array.from({ length: 64 }, (_, i) => ({ id: `e${i}` })) }))));
+await t('không liệt kê được weekPlans', assertFails(getDocs(collection(alice, 'weekPlans'))));
+await t('admin (claim) không đọc được thực đơn của người khác', assertFails(getDoc(doc(boss, 'weekPlans/alice_2026-11-09'))));
+await t('chưa đăng nhập: không đọc', assertFails(getDoc(doc(anon, 'weekPlans/alice_2026-11-09'))));
+await t('alice lưu trạng thái đi chợ', assertSucceeds(setDoc(doc(alice, 'shoppingLists/alice_2026-11-09'), shop('alice'))));
+await t('bob không đọc danh sách đi chợ của alice', assertFails(getDoc(doc(bob, 'shoppingLists/alice_2026-11-09'))));
+await t('quá 100 món lẻ bị từ chối', assertFails(setDoc(doc(alice, 'shoppingLists/alice_2026-11-09'), shop('alice', { extras: Array.from({ length: 101 }, (_, i) => ({ id: `x${i}` })) }))));
+await t('checked phải là danh sách', assertFails(setDoc(doc(alice, 'shoppingLists/alice_2026-11-09'), shop('alice', { checked: 'all' }))));
+await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'users/lock'), { role: 'blogger', isLocked: true }); });
+const locked = env.authenticatedContext('lock').firestore();
+await t('tài khoản bị khoá không ghi thực đơn', assertFails(setDoc(doc(locked, 'weekPlans/lock_2026-11-09'), plan('lock'))));
+await t('tài khoản bị khoá không đọc danh sách đi chợ', assertFails(getDoc(doc(locked, 'shoppingLists/lock_2026-11-09'))));
+
 console.log('\n== collection của bản cũ: khoá ghi ==');
 await t('alice không sửa được món cũ của mình', assertFails(updateDoc(doc(alice, 'foods/f1'), { title: 'mới' })));
 await t('alice không xoá được món cũ của mình', assertFails(deleteDoc(doc(alice, 'foods/f1'))));

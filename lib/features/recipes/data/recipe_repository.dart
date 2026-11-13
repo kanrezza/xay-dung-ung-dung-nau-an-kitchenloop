@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
 
 import '../models/recipe.dart';
 import 'firestore_codec.dart';
@@ -215,8 +214,8 @@ class FirestoreRecipeRepository implements RecipeRepository {
 /// khi máy chủ xác nhận, có thể rất lâu. Hàm này làm cho giao diện không bị treo:
 /// lỗi trả về sớm (ví dụ bị từ chối quyền) vẫn được ném ra; nếu quá hạn (thường do
 /// offline) thì coi như đã ghi vào bộ nhớ đệm cục bộ và việc đồng bộ tiếp tục ở
-/// nền, mọi lỗi hay kết quả đến muộn được bỏ qua êm.
-@visibleForTesting
+/// nền, mọi lỗi hay kết quả đến muộn được bỏ qua êm. Dùng chung cho mọi repository
+/// (công thức, thực đơn, đi chợ).
 Future<void> settleWrite(Future<void> write, Duration grace) {
   final completer = Completer<void>();
   final timer = Timer(grace, () {

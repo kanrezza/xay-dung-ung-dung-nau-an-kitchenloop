@@ -51,7 +51,7 @@ void main() {
 
     test('quản trị viên không có nhánh đọc recipes', () {
       final rules = read('firestore.rules');
-      final recipes = rules.substring(rules.indexOf('match /recipes/{recipeId}'));
+      final recipes = rules.substring(rules.indexOf('match /recipes/{recipeId}'), rules.indexOf('THỰC ĐƠN TUẦN, ĐI CHỢ'));
       expect(recipes, isNot(contains('isAdmin')));
       expect('notLocked()'.allMatches(recipes).length, 5, reason: 'get, list, create, update, delete');
     });

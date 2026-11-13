@@ -113,6 +113,41 @@ service cloud.firestore {
         && resource.data.ownerId == request.auth.uid;
     }
 
+    // ===================== THỰC ĐƠN TUẦN, ĐI CHỢ (spec 003) =====================
+    // Mỗi tuần một tài liệu, id = "{uid}_{yyyy-MM-dd}" (ngày thứ 2). Chỉ chủ sở hữu, không bị khoá.
+    function ownWeekDoc(docId) {
+      return signedIn() && notLocked()
+        && docId.matches(request.auth.uid + '_[0-9]{4}-[0-9]{2}-[0-9]{2}');
+    }
+
+    function validWeekDoc(docId, d) {
+      return d.ownerId == request.auth.uid
+        && d.weekStart is string
+        && docId == request.auth.uid + '_' + d.weekStart;
+    }
+
+    match /weekPlans/{planId} {
+      allow get: if ownWeekDoc(planId)
+        && (resource == null || resource.data.ownerId == request.auth.uid);
+      allow create, update: if ownWeekDoc(planId)
+        && validWeekDoc(planId, request.resource.data)
+        && request.resource.data.entries is list
+        && request.resource.data.entries.size() <= 63;
+      allow delete: if ownWeekDoc(planId) && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /shoppingLists/{listId} {
+      allow get: if ownWeekDoc(listId)
+        && (resource == null || resource.data.ownerId == request.auth.uid);
+      allow create, update: if ownWeekDoc(listId)
+        && validWeekDoc(listId, request.resource.data)
+        && request.resource.data.checked is list
+        && request.resource.data.checked.size() <= 500
+        && request.resource.data.extras is list
+        && request.resource.data.extras.size() <= 100;
+      allow delete: if ownWeekDoc(listId) && resource.data.ownerId == request.auth.uid;
+    }
+
     // ===================== COLLECTION CŨ KHÁC =====================
     // meal_plans, followers, ... của bản cũ: KitchenLoop không dùng, khoá hoàn toàn.
     // Mọi collection không được khai báo ở trên cũng bị từ chối mặc định.
