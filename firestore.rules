@@ -10,6 +10,18 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    // Quản trị viên: CHỈ dựa vào custom claim của Firebase Auth (đặt bằng script với khoá
+    // quản trị, xem tool/admin_tool). Không dùng users.role vì client ghi được (spec 002).
+    function isAdmin() {
+      return signedIn() && request.auth.token.get('admin', false) == true;
+    }
+
+    // Tài khoản đang đăng nhập không bị khoá (users/{uid}.isLocked != true).
+    function notLocked() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return !exists(path) || get(path).data.get('isLocked', false) != true;
+    }
+
     // Các trường bị thay đổi trong lần update này
     function changedKeys() {
       return request.resource.data.diff(resource.data).affectedKeys();
@@ -21,11 +33,11 @@ service cloud.firestore {
     }
 
     // ===================== USERS =====================
-    // Hồ sơ chỉ chủ tài khoản đọc/ghi. Không ai liệt kê được collection này
-    // (bản cũ cho mọi người đã đăng nhập đọc email, số điện thoại của nhau).
+    // Hồ sơ chỉ chủ tài khoản và quản trị viên đọc được; chỉ quản trị viên liệt kê được
+    // (màn hình quản trị). Người thường không xem được email của nhau.
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
 
       // Tự đăng ký: không tự gán quyền admin, không tự mở khoá, không lưu mật khẩu.
       allow create: if isOwner(userId)
@@ -33,10 +45,15 @@ service cloud.firestore {
         && request.resource.data.get('isLocked', false) == false
         && noPassword();
 
-      // role, isLocked chỉ quản trị viên đặt qua Firebase Console.
-      allow update: if isOwner(userId)
-        && !changedKeys().hasAny(['role', 'isLocked'])
-        && noPassword();
+      // Chủ tài khoản: role, isLocked chỉ quản trị viên đặt.
+      // Quản trị viên: chỉ khoá/mở khoá người KHÁC, không sửa trường nào khác.
+      allow update: if (isOwner(userId)
+          && !changedKeys().hasAny(['role', 'isLocked', 'lockedAt'])
+          && noPassword())
+        || (isAdmin()
+          && userId != request.auth.uid
+          && changedKeys().hasOnly(['isLocked', 'lockedAt'])
+          && request.resource.data.isLocked is bool);
 
       allow delete: if isOwner(userId);
     }
@@ -56,6 +73,7 @@ service cloud.firestore {
 
     // ===================== RECIPES (KitchenLoop GĐ1) =====================
     // Công thức riêng tư theo từng người dùng. Admin KHÔNG có đặc quyền đọc.
+    // Tài khoản bị khoá không đọc/ghi được (spec 002, FR-004).
 
     // Ràng buộc kích thước/kiểu của một công thức (xem specs/001-.../data-model.md).
     function validRecipe(d) {
@@ -74,24 +92,24 @@ service cloud.firestore {
     match /recipes/{recipeId} {
       // resource == null: đọc document chưa tồn tại trả về "không tồn tại"
       // thay vì lỗi quyền.
-      allow get: if signedIn()
+      allow get: if signedIn() && notLocked()
         && (resource == null || resource.data.ownerId == request.auth.uid);
 
       // Truy vấn danh sách bắt buộc có where('ownerId', '==', uid).
-      allow list: if signedIn()
+      allow list: if signedIn() && notLocked()
         && resource.data.ownerId == request.auth.uid;
 
-      allow create: if signedIn()
+      allow create: if signedIn() && notLocked()
         && request.resource.data.ownerId == request.auth.uid
         && validRecipe(request.resource.data);
 
       // ownerId bất biến.
-      allow update: if signedIn()
+      allow update: if signedIn() && notLocked()
         && resource.data.ownerId == request.auth.uid
         && request.resource.data.ownerId == resource.data.ownerId
         && validRecipe(request.resource.data);
 
-      allow delete: if signedIn()
+      allow delete: if signedIn() && notLocked()
         && resource.data.ownerId == request.auth.uid;
     }
 

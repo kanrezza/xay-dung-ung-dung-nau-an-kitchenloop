@@ -12,7 +12,7 @@ const rulesPath = new URL('../firestore.rules', import.meta.url);
 const storageRulesPath = new URL('../storage.rules', import.meta.url);
 const env = await initializeTestEnvironment({
   projectId: 'demo-rules',
-  firestore: { rules: fs.readFileSync(rulesPath, 'utf8'), host: '127.0.0.1', port: 8080 },
+  firestore: { rules: fs.readFileSync(rulesPath, 'utf8'), host: '127.0.0.1', port: 8085 },
   storage: { rules: fs.readFileSync(storageRulesPath, 'utf8'), host: '127.0.0.1', port: 9199 },
 });
 
@@ -145,7 +145,7 @@ await t('không ai liệt kê được collection users', assertFails(getDocs(co
 await t('không tra được email theo username (kiểu đăng nhập cũ)', assertFails(getDocs(query(collection(bob, 'users'), where('username', '==', 'alice')))));
 await t('chưa đăng nhập: không tra được users', assertFails(getDocs(query(collection(anon, 'users'), where('username', '==', 'alice')))));
 await t('chưa đăng nhập: không đọc được hồ sơ', assertFails(getDoc(doc(anon, 'users/alice'))));
-await t('admin cũng không đọc hồ sơ người khác từ app', assertFails(getDoc(doc(admin, 'users/alice'))));
+await t('role=admin trong Firestore (không có claim) không đọc được hồ sơ người khác', assertFails(getDoc(doc(admin, 'users/alice'))));
 await t('người mới đăng ký làm blogger', assertSucceeds(setDoc(doc(env.authenticatedContext('dan').firestore(), 'users/dan'), { role: 'blogger', isLocked: false, followers: [] })));
 await t('người mới không đăng ký làm admin', assertFails(setDoc(doc(env.authenticatedContext('eve').firestore(), 'users/eve'), { role: 'admin' })));
 await t('người mới không tạo hồ sơ với isLocked = true', assertFails(setDoc(doc(env.authenticatedContext('fay').firestore(), 'users/fay'), { role: 'blogger', isLocked: true })));
@@ -154,8 +154,45 @@ await t('không thêm mật khẩu vào hồ sơ có sẵn', assertFails(updateD
 await t('alice sửa tên hiển thị của mình', assertSucceeds(updateDoc(doc(alice, 'users/alice'), { name: 'Alice' })));
 await t('tài khoản bị khoá không tự mở khoá', assertFails(updateDoc(doc(env.authenticatedContext('lock').firestore(), 'users/lock'), { isLocked: false })));
 await t('alice không follow / sửa hồ sơ của bob', assertFails(updateDoc(doc(alice, 'users/bob'), { followers: arrayUnion('alice') })));
-await t('admin không đổi role của người khác từ app (chỉ qua Console)', assertFails(updateDoc(doc(admin, 'users/bob'), { role: 'admin' })));
+await t('role=admin trong Firestore (không có claim) không đổi được role người khác', assertFails(updateDoc(doc(admin, 'users/bob'), { role: 'admin' })));
 await t('bob không xoá hồ sơ của alice', assertFails(deleteDoc(doc(bob, 'users/alice'))));
+
+console.log('\n== quản trị (spec 002): quyền qua custom claim ==');
+const boss = env.authenticatedContext('boss', { admin: true }).firestore();
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, 'users/boss'), { role: 'blogger', isLocked: false, name: 'Boss' });
+  await setDoc(doc(db, 'users/kim'), { role: 'blogger', isLocked: false, name: 'Kim', email: 'kim@example.com' });
+  await setDoc(doc(db, 'recipes/rk'), recipe('kim'));
+});
+const kim = env.authenticatedContext('kim').firestore();
+await t('admin (claim) liệt kê được users', assertSucceeds(getDocs(collection(boss, 'users'))));
+await t('admin (claim) đọc được hồ sơ người khác', assertSucceeds(getDoc(doc(boss, 'users/alice'))));
+await t('admin KHÔNG đọc được công thức riêng của người khác', assertFails(getDoc(doc(boss, 'recipes/ra'))));
+await t('admin KHÔNG liệt kê được công thức của người khác', assertFails(getDocs(query(collection(boss, 'recipes'), where('ownerId', '==', 'alice')))));
+await t('admin không sửa tên người khác', assertFails(updateDoc(doc(boss, 'users/alice'), { name: 'Hacked' })));
+await t('admin không cấp role cho người khác', assertFails(updateDoc(doc(boss, 'users/alice'), { role: 'admin' })));
+await t('admin không tự khoá chính mình', assertFails(updateDoc(doc(boss, 'users/boss'), { isLocked: true })));
+await t('isLocked phải là bool', assertFails(updateDoc(doc(boss, 'users/kim'), { isLocked: 'yes' })));
+await t('người thường không tự khoá/mở khoá người khác', assertFails(updateDoc(doc(alice, 'users/kim'), { isLocked: true })));
+await t('claim admin = false không có quyền', assertFails(getDocs(collection(env.authenticatedContext('x', { admin: false }).firestore(), 'users'))));
+
+console.log('\n== tài khoản bị khoá ==');
+await t('kim (chưa khoá) đọc được công thức của mình', assertSucceeds(getDoc(doc(kim, 'recipes/rk'))));
+await t('admin khoá kim', assertSucceeds(updateDoc(doc(boss, 'users/kim'), { isLocked: true, lockedAt: new Date() })));
+await t('kim bị khoá: không đọc được công thức của mình', assertFails(getDoc(doc(kim, 'recipes/rk'))));
+await t('kim bị khoá: không liệt kê được', assertFails(getDocs(query(collection(kim, 'recipes'), where('ownerId', '==', 'kim')))));
+await t('kim bị khoá: không tạo công thức', assertFails(setDoc(doc(kim, 'recipes/rk2'), recipe('kim'))));
+await t('kim bị khoá: không sửa công thức', assertFails(updateDoc(doc(kim, 'recipes/rk'), { title: 'x' })));
+await t('kim bị khoá: không xoá công thức', assertFails(deleteDoc(doc(kim, 'recipes/rk'))));
+await t('kim bị khoá: không tự mở khoá', assertFails(updateDoc(doc(kim, 'users/kim'), { isLocked: false })));
+await t('kim bị khoá: vẫn đọc được hồ sơ của mình (để app biết mà đăng xuất)', assertSucceeds(getDoc(doc(kim, 'users/kim'))));
+await t('admin mở khoá kim', assertSucceeds(updateDoc(doc(boss, 'users/kim'), { isLocked: false, lockedAt: null })));
+await t('kim mở khoá: đọc lại được công thức, dữ liệu còn nguyên', (async () => {
+  const snap = await assertSucceeds(getDoc(doc(kim, 'recipes/rk')));
+  if (snap.data().title !== 'Thịt kho') throw new Error('dữ liệu bị đổi');
+})());
+await t('người không có hồ sơ users vẫn dùng recipes bình thường', assertSucceeds(setDoc(doc(env.authenticatedContext('nouser').firestore(), 'recipes/rn'), recipe('nouser'))));
 
 console.log('\n== collection của bản cũ: khoá ghi ==');
 await t('alice không sửa được món cũ của mình', assertFails(updateDoc(doc(alice, 'foods/f1'), { title: 'mới' })));

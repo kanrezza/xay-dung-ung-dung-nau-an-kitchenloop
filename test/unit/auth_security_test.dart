@@ -32,12 +32,28 @@ void main() {
       expect(service, isNot(contains('.where(')));
     });
 
-    test('firestore.rules: users chỉ chủ tài khoản đọc, không ai liệt kê', () {
+    test('firestore.rules: users chỉ chủ tài khoản hoặc quản trị viên đọc; chỉ quản trị viên liệt kê', () {
       final rules = read('firestore.rules');
       final users = rules.substring(rules.indexOf('match /users/{userId}'), rules.indexOf('match /foods/{foodId}'));
-      expect(users, contains('allow get: if isOwner(userId);'));
-      expect(users, contains('allow list: if false;'));
-      expect(users, isNot(contains('isAdmin')));
+      expect(users, contains('allow get: if isOwner(userId) || isAdmin();'));
+      expect(users, contains('allow list: if isAdmin();'));
+    });
+
+    test('quyền quản trị chỉ đến từ custom claim, không từ trường role trong Firestore', () {
+      final rules = read('firestore.rules');
+      final isAdmin = rules.substring(rules.indexOf('function isAdmin()'), rules.indexOf('function notLocked()'));
+      expect(isAdmin, contains('request.auth.token'));
+      expect(isAdmin, isNot(contains('role')));
+      // Không đọc tài liệu Firestore (như users/{uid}.role) để quyết định quyền admin.
+      expect(isAdmin, isNot(contains('get(/')));
+      expect(isAdmin, isNot(contains('exists(')));
+    });
+
+    test('quản trị viên không có nhánh đọc recipes', () {
+      final rules = read('firestore.rules');
+      final recipes = rules.substring(rules.indexOf('match /recipes/{recipeId}'));
+      expect(recipes, isNot(contains('isAdmin')));
+      expect('notLocked()'.allMatches(recipes).length, 5, reason: 'get, list, create, update, delete');
     });
 
     test('firestore.rules: collection của bản cũ không ghi được', () {
