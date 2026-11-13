@@ -111,4 +111,25 @@ void main() {
     expect(order, ['before', 'signOut']);
     expect(a.email, isNull);
   });
+
+  testWidgets('tài khoản thường: không có mục Quản trị', (tester) async {
+    await pumpScreen(tester);
+    expect(find.byKey(const Key('admin_entry')), findsNothing);
+  });
+
+  testWidgets('quản trị viên (custom claim): có mục Quản trị', (tester) async {
+    actions = AccountActions(
+      emailGetter: () => 'boss@example.com',
+      signOutCallback: () async {},
+      adminChecker: () async => true,
+    );
+    await pumpScreen(tester);
+    expect(find.byKey(const Key('admin_entry')), findsOneWidget);
+    expect(find.text('Quản trị'), findsOneWidget);
+  });
+
+  test('AccountActions.isAdmin mặc định false khi không có adminChecker', () async {
+    final a = AccountActions(emailGetter: () => null, signOutCallback: () async {});
+    expect(await a.isAdmin(), isFalse);
+  });
 }

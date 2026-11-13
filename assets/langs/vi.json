@@ -239,7 +239,8 @@
     "title": "Tài khoản",
     "language": "Ngôn ngữ",
     "logout": "Đăng xuất",
-    "logout_confirm": "Bạn có chắc muốn đăng xuất? Các hẹn giờ đang chạy sẽ bị huỷ."
+    "logout_confirm": "Bạn có chắc muốn đăng xuất? Các hẹn giờ đang chạy sẽ bị huỷ.",
+    "admin": "Quản trị"
   },
   "common": {
     "save": "Lưu",
@@ -249,5 +250,26 @@
     "edit": "Sửa",
     "retry": "Thử lại",
     "close": "Đóng"
+  },
+  "admin": {
+    "title": "Quản trị",
+    "total": "Tài khoản",
+    "locked": "Đang khoá",
+    "new_7d": "Mới (7 ngày)",
+    "search_hint": "Tìm theo tên hoặc email",
+    "lock": "Khoá",
+    "unlock": "Mở khoá",
+    "lock_title": "Khoá tài khoản?",
+    "lock_confirm": "{} sẽ không đăng nhập và không xem được công thức cho tới khi được mở khoá. Dữ liệu vẫn được giữ nguyên.",
+    "unlock_title": "Mở khoá tài khoản?",
+    "unlock_confirm": "{} sẽ dùng lại được ứng dụng như bình thường.",
+    "you": "Bạn",
+    "status_locked": "Đã khoá",
+    "no_name": "(Chưa đặt tên)",
+    "joined": "Tham gia {}",
+    "empty": "Không có tài khoản nào khớp.",
+    "privacy_note": "Quản trị viên không xem được công thức của người dùng.",
+    "err_load": "Không tải được danh sách tài khoản. Tài khoản này có thể chưa có quyền quản trị.",
+    "err_update": "Không cập nhật được, hãy thử lại."
   }
 }

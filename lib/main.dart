@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart'; // 1. MỚI THÊM: Import thư viện
 
 import 'app_theme.dart';
+import 'features/admin/data/admin_repository.dart';
+import 'services/auth_service.dart';
 import 'firebase_options.dart';
 import 'features/recipes/data/account_actions.dart';
 import 'features/recipes/data/cooking_session_store.dart';
@@ -40,7 +42,12 @@ void main() async {
 
   // Firebase Auth tự giữ phiên đăng nhập trên máy (an toàn hơn việc tự lưu mật khẩu).
   // Chờ lần phát đầu tiên để biết phiên cũ đã được khôi phục hay chưa.
-  final signedIn = await FirebaseAuth.instance.authStateChanges().first != null;
+  var signedIn = await FirebaseAuth.instance.authStateChanges().first != null;
+  // Tài khoản đã bị quản trị viên khoá thì đăng xuất ngay (spec 002, FR-005).
+  if (signedIn && await AuthService().isCurrentUserLocked()) {
+    await FirebaseAuth.instance.signOut();
+    signedIn = false;
+  }
 
   // 3. MỚI THÊM: Bọc MyApp bằng EasyLocalization
   runApp(
@@ -97,9 +104,16 @@ class MyApp extends StatelessWidget {
         ),
         Provider<TimerNotifier>(create: (_) => TimerNotificationService()),
         Provider<ScreenAwake>(create: (_) => const WakelockScreenAwake()),
+        // Quản trị tối thiểu (spec 002): chỉ tài khoản có custom claim `admin` dùng được.
+        Provider<AdminRepository>(
+          create: (_) => FirestoreAdminRepository(firestore: FirebaseFirestore.instance, auth: FirebaseAuth.instance),
+        ),
         // Đăng xuất phải huỷ mọi hẹn giờ của tài khoản đang đăng nhập.
         Provider<AccountActions>(
-          create: (ctx) => AccountActions.firebase(beforeSignOut: ctx.read<TimerNotifier>().cancelAll),
+          create: (ctx) => AccountActions.firebase(
+            beforeSignOut: ctx.read<TimerNotifier>().cancelAll,
+            adminChecker: ctx.read<AdminRepository>().isCurrentUserAdmin,
+          ),
         ),
         ChangeNotifierProvider(create: (_) => UserProvider()),
       ],

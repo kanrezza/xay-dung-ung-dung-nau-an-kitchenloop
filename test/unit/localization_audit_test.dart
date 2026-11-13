@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// mọi văn bản hiển thị phải đi qua `.tr()` và mọi khoá đang dùng phải có cả bản
 /// tiếng Việt lẫn tiếng Anh.
 void main() {
-  const base = 'lib/features/recipes';
+  const base = 'lib/features'; // recipes (spec 001) + admin (spec 002)
 
   List<File> dartFiles() => Directory(base)
       .listSync(recursive: true)
@@ -96,7 +96,8 @@ void main() {
   test('vi và en có cùng tập khoá của GĐ1', () {
     final vi = load('vi');
     final en = load('en');
-    bool phase1(String k) => k.startsWith('recipes.') || k.startsWith('account.') || k.startsWith('common.');
+    bool phase1(String k) =>
+        k.startsWith('recipes.') || k.startsWith('account.') || k.startsWith('common.') || k.startsWith('admin.');
     expect(en.keys.where(phase1).toSet(), vi.keys.where(phase1).toSet());
   });
 }

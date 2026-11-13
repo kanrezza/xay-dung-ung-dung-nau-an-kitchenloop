@@ -176,6 +176,19 @@ class AuthService {
     }
   }
 
+  /// `true` nếu tài khoản đang đăng nhập đã bị quản trị viên khoá (`users/{uid}.isLocked`).
+  /// Lỗi mạng hoặc quá giờ: coi như không khoá (Firestore rules vẫn chặn dữ liệu).
+  Future<bool> isCurrentUserLocked() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    try {
+      final doc = await _firestore.collection('users').doc(user.uid).get().timeout(const Duration(seconds: 5));
+      return doc.data()?['isLocked'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // --- 3. QUÊN MẬT KHẨU ---
   // Firebase gửi Link reset pass về email (Cách chuẩn bảo mật nhất)
   Future<String> resetPassword(String email) async {

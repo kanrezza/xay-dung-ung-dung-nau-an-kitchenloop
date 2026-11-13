@@ -78,6 +78,18 @@ void main() {
     });
   });
 
+  test('admin: chỉ thư mục data/ được import Firebase (Constitution IV)', () {
+    final files = Directory('lib/features/admin')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart') && !f.path.contains('/data/'))
+        .toList();
+    expect(files.length, greaterThanOrEqualTo(4), reason: 'bộ quét file có vấn đề');
+    for (final f in files) {
+      expect(networkImportsIn(f.path), isEmpty, reason: f.path);
+    }
+  });
+
   group('xử lý tải ảnh khi offline', () {
     test('trình chọn ảnh bắt OfflineException và hiện thông báo, không làm mất dữ liệu đang nhập', () {
       final picking = File('$base/view/widgets/image_picking.dart').readAsStringSync();

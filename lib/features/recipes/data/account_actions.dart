@@ -11,8 +11,10 @@ class AccountActions {
     required String? Function() emailGetter,
     required Future<void> Function() signOutCallback,
     this.beforeSignOut,
+    Future<bool> Function()? adminChecker,
   })  : _emailGetter = emailGetter,
-        _signOutCallback = signOutCallback;
+        _signOutCallback = signOutCallback,
+        _adminChecker = adminChecker;
 
   /// Bản dùng Firebase thật. [beforeSignOut] chạy trước khi đăng xuất, ví dụ
   /// để huỷ mọi hẹn giờ đang chạy.
@@ -20,6 +22,7 @@ class AccountActions {
     FirebaseAuth? auth,
     AuthService? authService,
     Future<void> Function()? beforeSignOut,
+    Future<bool> Function()? adminChecker,
   }) {
     final firebaseAuth = auth ?? FirebaseAuth.instance;
     final service = authService ?? AuthService();
@@ -27,11 +30,17 @@ class AccountActions {
       emailGetter: () => firebaseAuth.currentUser?.email,
       signOutCallback: service.logout,
       beforeSignOut: beforeSignOut,
+      adminChecker: adminChecker,
     );
   }
 
   final String? Function() _emailGetter;
   final Future<void> Function() _signOutCallback;
+  final Future<bool> Function()? _adminChecker;
+
+  /// `true` nếu tài khoản đang đăng nhập là quản trị viên (custom claim, spec 002).
+  /// Chỉ để hiện mục "Quản trị"; quyền thật do Firestore rules kiểm tra.
+  Future<bool> isAdmin() async => await _adminChecker?.call() ?? false;
 
   /// Chạy trước [signOut] (huỷ hẹn giờ, dọn dữ liệu cục bộ...).
   final Future<void> Function()? beforeSignOut;

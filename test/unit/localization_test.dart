@@ -29,7 +29,7 @@ Map<String, String> load(String lang) {
 int placeholders(String s) => '{}'.allMatches(s).length;
 
 void main() {
-  const namespaces = ['recipes.', 'account.', 'common.'];
+  const namespaces = ['recipes.', 'account.', 'common.', 'admin.'];
   late Map<String, String> vi;
   late Map<String, String> en;
 

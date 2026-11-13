@@ -243,7 +243,8 @@
     "title": "Account",
     "language": "Language",
     "logout": "Log out",
-    "logout_confirm": "Are you sure you want to log out? Running timers will be cancelled."
+    "logout_confirm": "Are you sure you want to log out? Running timers will be cancelled.",
+    "admin": "Admin"
   },
   "common": {
     "save": "Save",
@@ -253,5 +254,26 @@
     "edit": "Edit",
     "retry": "Retry",
     "close": "Close"
+  },
+  "admin": {
+    "title": "Admin",
+    "total": "Accounts",
+    "locked": "Locked",
+    "new_7d": "New (7 days)",
+    "search_hint": "Search by name or email",
+    "lock": "Lock",
+    "unlock": "Unlock",
+    "lock_title": "Lock this account?",
+    "lock_confirm": "{} won't be able to sign in or see their recipes until unlocked. Their data is kept.",
+    "unlock_title": "Unlock this account?",
+    "unlock_confirm": "{} will be able to use the app again.",
+    "you": "You",
+    "status_locked": "Locked",
+    "no_name": "(No name)",
+    "joined": "Joined {}",
+    "empty": "No matching accounts.",
+    "privacy_note": "Admins can't see users' recipes.",
+    "err_load": "Couldn't load accounts. This account may not have admin rights.",
+    "err_update": "Couldn't update, please try again."
   }
 }

@@ -1,10 +1,11 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
+import '../../admin/view/admin_screen.dart';
 import '../data/account_actions.dart';
 
-/// Màn hình tài khoản tối thiểu: email, đổi ngôn ngữ và đăng xuất.
-class AccountMenuScreen extends StatelessWidget {
+/// Màn hình tài khoản tối thiểu: email, đổi ngôn ngữ, quản trị (nếu là admin) và đăng xuất.
+class AccountMenuScreen extends StatefulWidget {
   const AccountMenuScreen({
     super.key,
     required this.actions,
@@ -15,6 +16,15 @@ class AccountMenuScreen extends StatelessWidget {
 
   /// Màn hình đăng nhập để quay về sau khi đăng xuất.
   final WidgetBuilder loginBuilder;
+
+  @override
+  State<AccountMenuScreen> createState() => _AccountMenuScreenState();
+}
+
+class _AccountMenuScreenState extends State<AccountMenuScreen> {
+  late final Future<bool> _isAdmin = widget.actions.isAdmin();
+
+  AccountActions get actions => widget.actions;
 
   Future<void> _confirmAndSignOut(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -42,7 +52,7 @@ class AccountMenuScreen extends StatelessWidget {
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute<void>(builder: loginBuilder),
+      MaterialPageRoute<void>(builder: widget.loginBuilder),
       (route) => false,
     );
   }
@@ -77,6 +87,24 @@ class AccountMenuScreen extends StatelessWidget {
             label: 'English',
             selected: current == 'en',
             onTap: () => actions.setLanguage(context, const Locale('en')),
+          ),
+          FutureBuilder<bool>(
+            future: _isAdmin,
+            builder: (context, snapshot) {
+              if (snapshot.data != true) return const SizedBox.shrink();
+              return Column(
+                children: [
+                  const Divider(),
+                  ListTile(
+                    key: const Key('admin_entry'),
+                    leading: const Icon(Icons.admin_panel_settings_outlined),
+                    title: Text('account.admin'.tr()),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(context, AdminScreen.route()),
+                  ),
+                ],
+              );
+            },
           ),
           const Divider(),
           ListTile(
