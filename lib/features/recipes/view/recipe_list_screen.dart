@@ -11,7 +11,7 @@ import 'recipe_editor_screen.dart';
 import 'widgets/recipe_card.dart';
 import 'widgets/tag_filter_bar.dart';
 
-/// Trang chủ sau đăng nhập: danh sách công thức riêng của người dùng.
+/// Tab Công thức: lưới công thức riêng của người dùng, tìm kiếm và lọc theo thẻ.
 class RecipeListScreen extends StatefulWidget {
   const RecipeListScreen({super.key, required this.loginBuilder});
 
@@ -183,8 +183,15 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   actionIcon: Icons.filter_alt_off,
                   onAction: provider.clearFilters,
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.only(top: 4, bottom: 96),
+              : GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                  // Lưới 2 cột trên điện thoại, nhiều cột hơn trên máy tính bảng.
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 240,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.74,
+                  ),
                   itemCount: provider.filteredRecipes.length,
                   itemBuilder: (context, index) {
                     final recipe = provider.filteredRecipes[index];

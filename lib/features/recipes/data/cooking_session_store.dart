@@ -37,6 +37,26 @@ class CookingSessionStore {
     }
   }
 
+  /// Mọi phiên nấu dở của tài khoản đang đăng nhập (trang chủ: "Nấu tiếp").
+  /// Dữ liệu hỏng được bỏ qua.
+  Future<List<CookingSession>> loadAll() async {
+    final uid = _uidGetter();
+    if (uid == null) return const [];
+    final prefix = 'cooking_session_${uid}_';
+    final prefs = await SharedPreferences.getInstance();
+    final sessions = <CookingSession>[];
+    for (final key in prefs.getKeys().where((k) => k.startsWith(prefix))) {
+      final raw = prefs.getString(key);
+      if (raw == null) continue;
+      try {
+        sessions.add(CookingSession.fromJson(jsonDecode(raw) as Map<String, dynamic>));
+      } catch (_) {
+        // Bỏ qua phiên hỏng; load() sẽ dọn nó khi mở đúng công thức.
+      }
+    }
+    return sessions;
+  }
+
   Future<void> save(CookingSession session) async {
     final key = _key(session.recipeId);
     if (key == null) return;

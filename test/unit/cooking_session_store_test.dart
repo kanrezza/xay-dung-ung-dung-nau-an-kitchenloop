@@ -153,4 +153,24 @@ void main() {
       expect(await newStore().load('r1'), isNull);
     });
   });
+
+  group('loadAll (trang chủ: nấu tiếp)', () {
+    test('liệt kê mọi phiên của tài khoản đang đăng nhập, không lẫn tài khoản khác', () async {
+      final store = newStore();
+      await store.save(session(recipeId: 'r1'));
+      await store.save(session(recipeId: 'r2', stepIndex: 3));
+      uid = 'bob';
+      await newStore().save(session(recipeId: 'rb'));
+      uid = 'alice';
+      final all = await newStore().loadAll();
+      expect(all.map((s) => s.recipeId).toSet(), {'r1', 'r2'});
+    });
+
+    test('bỏ qua phiên hỏng; chưa đăng nhập thì rỗng', () async {
+      SharedPreferences.setMockInitialValues({'cooking_session_alice_x': '{hỏng'});
+      expect(await newStore().loadAll(), isEmpty);
+      uid = null;
+      expect(await newStore().loadAll(), isEmpty);
+    });
+  });
 }

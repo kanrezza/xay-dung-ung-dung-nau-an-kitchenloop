@@ -1,13 +1,14 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
+import '../../../home/view/widgets/recipe_cover.dart';
 import '../../models/recipe.dart';
 import '../display_helpers.dart';
-import 'recipe_image.dart';
 
 enum _CardAction { edit, delete }
 
-/// Một công thức trong danh sách: ảnh, tên, số nguyên liệu/bước, menu sửa/xoá.
+/// Một công thức trong lưới: ảnh bìa (ảnh thật hoặc minh hoạ), tên, thời gian, khẩu phần,
+/// số nguyên liệu/bước, menu sửa/xoá và nhãn "đang đồng bộ".
 class RecipeCard extends StatelessWidget {
   const RecipeCard({
     super.key,
@@ -24,82 +25,109 @@ class RecipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final seconds = recipeTotalSeconds(recipe);
+    final title = recipeDisplayTitle(recipe);
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              _Thumbnail(url: recipe.imageUrl),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      recipeDisplayTitle(recipe),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${'recipes.n_ingredients'.plural(recipe.ingredients.length)} · '
-                      '${'recipes.n_steps'.plural(recipe.steps.length)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-                    ),
-                    if (recipe.isSyncing)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          key: Key('syncing_${recipe.id}'),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.sync, size: 14, color: scheme.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              'recipes.syncing'.tr(),
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.primary),
-                            ),
-                          ],
-                        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  RecipeCover(title: title, imageUrl: recipe.imageUrl, iconSize: 40),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Material(
+                      color: Colors.black.withValues(alpha: 0.28),
+                      shape: const CircleBorder(),
+                      child: PopupMenuButton<_CardAction>(
+                        icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+                        onSelected: (action) => action == _CardAction.edit ? onEdit() : onDelete(),
+                        itemBuilder: (_) => [
+                          PopupMenuItem(value: _CardAction.edit, child: Text('common.edit'.tr())),
+                          PopupMenuItem(value: _CardAction.delete, child: Text('common.delete'.tr())),
+                        ],
                       ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<_CardAction>(
-                onSelected: (action) => action == _CardAction.edit ? onEdit() : onDelete(),
-                itemBuilder: (_) => [
-                  PopupMenuItem(value: _CardAction.edit, child: Text('common.edit'.tr())),
-                  PopupMenuItem(value: _CardAction.delete, child: Text('common.delete'.tr())),
+                    ),
+                  ),
+                  if (seconds > 0)
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: _Badge(icon: Icons.schedule, text: formatCookTime(seconds)),
+                    ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${'recipes.n_ingredients'.plural(recipe.ingredients.length)} · '
+                    '${'recipes.n_steps'.plural(recipe.steps.length)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                  if (recipe.isSyncing)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        key: Key('syncing_${recipe.id}'),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.sync, size: 14, color: scheme.primary),
+                          const SizedBox(width: 4),
+                          Text('recipes.syncing'.tr(), style: theme.textTheme.bodySmall?.copyWith(color: scheme.primary)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _Thumbnail extends StatelessWidget {
-  const _Thumbnail({required this.url});
+/// Nhãn nhỏ nền tối trên ảnh bìa (thời gian nấu).
+class _Badge extends StatelessWidget {
+  const _Badge({required this.icon, required this.text});
 
-  final String url;
+  final IconData icon;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final fallback = Container(
-      width: 64,
-      height: 64,
-      color: scheme.surfaceContainerHighest,
-      child: Icon(Icons.restaurant_menu, color: scheme.onSurfaceVariant),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.45), borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(text, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
-    return RecipeImage(url: url, width: 64, height: 64, borderRadius: 8, fallback: fallback);
   }
 }

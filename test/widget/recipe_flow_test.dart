@@ -389,8 +389,8 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const Key('legacy_section')),
       200,
-      // Chỉ định vùng cuộn của trang (ô nhập khẩu phần cũng chứa một Scrollable).
-      scrollable: find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first,
+      // Màn chi tiết cuộn bằng CustomScrollView (ảnh bìa + nội dung); ô khẩu phần cũng có Scrollable.
+      scrollable: find.descendant(of: find.byType(CustomScrollView), matching: find.byType(Scrollable)).first,
     );
     await tester.tap(find.byKey(const Key('legacy_section')));
     await tester.pumpAndSettle();
@@ -721,6 +721,9 @@ void main() {
 
   Finder pageScrollable() => find.descendant(of: find.byType(ListView), matching: find.byType(Scrollable)).first;
 
+  /// Vùng cuộn của màn chi tiết (CustomScrollView có ảnh bìa, spec 003).
+  Finder detailScrollable() => find.descendant(of: find.byType(CustomScrollView), matching: find.byType(Scrollable)).first;
+
   testWidgets('công thức 50 nguyên liệu + 50 bước: xem chi tiết cuộn tới cuối không lỗi', (tester) async {
     await seedBig();
     await pumpApp(tester);
@@ -728,7 +731,7 @@ void main() {
     await tester.tap(find.text('Tiệc lớn'));
     await settle(tester);
 
-    await tester.scrollUntilVisible(find.text('Bước nấu số 49'), 400, scrollable: pageScrollable(), maxScrolls: 200);
+    await tester.scrollUntilVisible(find.text('Bước nấu số 49'), 400, scrollable: detailScrollable(), maxScrolls: 200);
     expect(find.text('Bước nấu số 49'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

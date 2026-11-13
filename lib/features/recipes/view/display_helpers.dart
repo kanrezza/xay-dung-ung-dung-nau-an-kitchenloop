@@ -67,3 +67,16 @@ List<String> scaledIngredientLines(Recipe recipe, int servings, String languageC
       ),
   ];
 }
+
+/// Tổng thời gian các bước có hẹn giờ (giây); 0 nếu không bước nào có thời gian.
+int recipeTotalSeconds(Recipe recipe) => recipe.steps.fold(0, (sum, s) => sum + (s.durationSec ?? 0));
+
+/// "45 phút", "1 giờ 30 phút", "3 giờ" (làm tròn lên phút).
+String formatCookTime(int seconds) {
+  final minutes = (seconds / 60).ceil();
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  if (h == 0) return 'recipes.time_m'.tr(args: ['$m']);
+  if (m == 0) return 'recipes.time_h'.tr(args: ['$h']);
+  return 'recipes.time_hm'.tr(args: ['$h', '$m']);
+}
