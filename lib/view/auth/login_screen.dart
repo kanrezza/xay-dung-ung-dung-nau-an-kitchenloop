@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:btl_ltdd/features/recipes/view/recipe_list_screen.dart';
 import 'package:btl_ltdd/providers/user_provider.dart';
+import 'package:btl_ltdd/view/auth/auth_widgets.dart';
 import 'package:btl_ltdd/view/auth/forgot_password_screen.dart';
 import 'package:btl_ltdd/view/auth/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import thư viện lưu trữ
-// import '../providers/user_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -68,8 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // HÀM 2: Xử lý đăng nhập & Lưu mật khẩu
-  // HÀM 2: Xử lý đăng nhập & Lưu mật khẩu & Chuyển trang
+  // Xử lý đăng nhập, nhớ email (nếu chọn) và chuyển sang danh sách công thức.
   void _handleLogin() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
@@ -80,15 +79,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng nhập email và mật khẩu")),
-      );
+      showAuthMessage(context, 'Vui lòng nhập email và mật khẩu');
       return;
     }
     if (!username.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng đăng nhập bằng email")),
-      );
+      showAuthMessage(context, 'Vui lòng đăng nhập bằng email');
       return;
     }
 
@@ -104,9 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Lưu "nhớ email" ở nền để người dùng được chuyển trang ngay khi Firebase login xong.
       unawaited(_saveSavedEmail(username));
 
-      // 2. HIỂN THỊ THÔNG BÁO
-
-      // 3. CHUYỂN HƯỚNG: mọi vai trò (kể cả admin) vào thẳng danh sách công thức
+      // Chuyển hướng: mọi vai trò (kể cả admin) vào thẳng danh sách công thức
       // của chính mình (KitchenLoop GĐ1). Xoá màn hình đăng nhập khỏi lịch sử để
       // nút Back không quay lại.
       Navigator.pushAndRemoveUntil(
@@ -118,285 +111,105 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } else {
       // Đăng nhập thất bại
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result), backgroundColor: Colors.red),
-      );
+      showAuthMessage(context, result, error: true);
     }
-  }
-
-  Widget _buildSocialButton({
-    required String text,
-    required Color color,
-    required Color textColor,
-    required IconData icon,
-    bool hasBorder = false,
-  }) {
-    return Container(
-      width: double.infinity,
-      height: 50,
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: textColor,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(5),
-            side: hasBorder
-                ? const BorderSide(color: Colors.grey)
-                : BorderSide.none,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-        ),
-        onPressed: () {},
-        child: Row(
-          children: [
-            Icon(icon, size: 24),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                text,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = Provider.of<UserProvider>(context).isLoading;
+    final isLoading = context.watch<UserProvider>().isLoading;
+    final scheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: () => FocusManager.instance.primaryFocus
-          ?.unfocus(), // Ẩn bàn phím khi chạm ra ngoài
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
+    return Scaffold(
+      body: AuthBody(
+        children: [
+          const SizedBox(height: 8),
+          const AuthHeader(title: 'KitchenLoop', subtitle: 'Công thức của bạn, nấu theo từng bước'),
+          const SizedBox(height: 36),
+
+          // --- EMAIL ---
+          TextField(
+            key: const Key('login_email'),
+            controller: _usernameController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autocorrect: false,
+            autofillHints: const [AutofillHints.email],
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // --- MẬT KHẨU ---
+          TextField(
+            key: const Key('login_password'),
+            controller: _passController,
+            obscureText: _obscureText,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.password],
+            onSubmitted: (_) => isLoading ? null : _handleLogin(),
+            decoration: InputDecoration(
+              labelText: 'Mật khẩu',
+              prefixIcon: const Icon(Icons.lock_outline),
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                tooltip: _obscureText ? 'Hiện mật khẩu' : 'Ẩn mật khẩu',
+                icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() => _obscureText = !_obscureText),
+              ),
+            ),
+          ),
+
+          // --- NHỚ EMAIL (không lưu mật khẩu) & QUÊN MẬT KHẨU ---
+          Row(
             children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 40),
-                      const Text(
-                        "REPICEA!",
-                        style: TextStyle(
-                          fontSize: 50,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: 'Cursive',
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Đăng nhập",
-                        style: TextStyle(fontSize: 20, color: Colors.black54),
-                      ),
-                      const SizedBox(height: 40),
-
-                      // --- INPUT TÀI KHOẢN ---
-                      TextField(
-                        controller: _usernameController,
-                        keyboardType: TextInputType.emailAddress,
-                        autocorrect: false,
-                        decoration: InputDecoration(
-                          labelText: "Email",
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(35),
-                            borderSide: const BorderSide(color: Colors.grey),
-                          ),
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 15),
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-
-                      // --- INPUT MẬT KHẨU ---
-                      TextField(
-                        controller: _passController,
-                        obscureText: _obscureText,
-                        decoration: InputDecoration(
-                          labelText: "Mật khẩu",
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscureText
-                                ? Icons.visibility_off
-                                : Icons.visibility),
-                            onPressed: () =>
-                                setState(() => _obscureText = !_obscureText),
-                          ),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(35)),
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 15),
-                        ),
-                      ),
-
-                      // --- HÀNG CHỨA CHECKBOX & QUÊN MẬT KHẨU ---
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Checkbox Nhớ email (không lưu mật khẩu)
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: _rememberMe,
-                                activeColor: Colors.lightBlue[400],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _rememberMe = value!;
-                                  });
-                                },
-                              ),
-                              const Text("Nhớ email"),
-                            ],
-                          ),
-
-                          // Nút Quên mật khẩu
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ForgotPasswordScreen(),
-                                  ));
-                            },
-                            child: const Text("Quên mật khẩu?"),
-                          ),
-                        ],
-                      ),
-                      // ------------------------------------------
-
-                      const SizedBox(height: 20),
-
-                      // --- DÒNG PHÂN CÁCH ---
-                      const Row(
-                        children: [
-                          Expanded(child: Divider()),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text("hoặc đăng nhập bằng",
-                                style: TextStyle(color: Colors.grey)),
-                          ),
-                          Expanded(child: Divider()),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // --- CÁC NÚT SSO ---
-                      _buildSocialButton(
-                        text: "Sign in with Apple",
-                        color: Colors.black,
-                        textColor: Colors.white,
-                        icon: Icons.apple,
-                      ),
-                      _buildSocialButton(
-                        text: "Sign in with Facebook",
-                        color: const Color(0xFF1877F2),
-                        textColor: Colors.white,
-                        icon: Icons.facebook,
-                      ),
-                      _buildSocialButton(
-                        text: "Sign in with Google",
-                        color: Colors.white,
-                        textColor: Colors.black87,
-                        icon: Icons.g_mobiledata,
-                        hasBorder: true,
-                      ),
-
-                      const SizedBox(height: 30),
-                      const Text(
-                        "Bằng cách đăng nhập, bạn đồng ý với User Agreement và Privacy Policy.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
+              Checkbox(
+                value: _rememberMe,
+                onChanged: (value) => setState(() => _rememberMe = value ?? false),
               ),
-              const SizedBox(height: 30),
-              // const Text(
-              //   "Bằng cách đăng nhập, bạn đồng ý với User Agreement và Privacy Policy.",
-              //   textAlign: TextAlign.center,
-              //   style: TextStyle(color: Colors.grey, fontSize: 12),
-              // ),
-
-              const SizedBox(height: 30), // Thêm khoảng cách
-
-              // --- MỚI THÊM: NÚT ĐĂNG KÝ Ở ĐÂY ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "Chưa có tài khoản? ",
-                    style: TextStyle(color: Colors.black54, fontSize: 15),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      // Chuyển sang màn hình Đăng ký
-                      // Đảm bảo bạn đã import register_screen.dart ở đầu file
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const RegisterScreen()));
-                    },
-                    child: Text(
-                      "Đăng ký ngay",
-                      style: TextStyle(
-                        color: Colors.lightBlue[400],
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+              GestureDetector(
+                onTap: () => setState(() => _rememberMe = !_rememberMe),
+                child: const Text('Nhớ email'),
               ),
-              SizedBox(height: 20), // Thêm khoảng cách
-              // NÚT ĐĂNG NHẬP (Sticky Footer)
-              InkWell(
-                onTap: isLoading ? null : _handleLogin,
-                child: Container(
-                  width: double.infinity,
-                  height: 60,
-                  color: Colors.lightBlue[400],
-                  alignment: Alignment.center,
-                  child: isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "ĐĂNG NHẬP",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                            SizedBox(width: 5),
-                            Icon(Icons.arrow_forward_ios,
-                                color: Colors.white, size: 16)
-                          ],
-                        ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
                 ),
+                child: const Text('Quên mật khẩu?'),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 16),
+
+          // --- NÚT ĐĂNG NHẬP ---
+          AuthSubmitButton(
+            key: const Key('login_submit'),
+            label: 'Đăng nhập',
+            loading: isLoading,
+            onPressed: _handleLogin,
+          ),
+          const SizedBox(height: 24),
+
+          // --- ĐĂNG KÝ ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Chưa có tài khoản?', style: TextStyle(color: scheme.onSurfaceVariant)),
+              TextButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                ),
+                child: const Text('Đăng ký ngay', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

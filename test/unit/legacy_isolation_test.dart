@@ -109,6 +109,7 @@ void main() {
       'lib/view/auth/login_screen.dart',
       'lib/view/auth/register_screen.dart',
       'lib/view/auth/forgot_password_screen.dart',
+      'lib/view/auth/auth_widgets.dart', // giao diện chung của 3 màn tài khoản (mới)
     };
     final legacyFiles = Directory('lib')
         .listSync(recursive: true)
