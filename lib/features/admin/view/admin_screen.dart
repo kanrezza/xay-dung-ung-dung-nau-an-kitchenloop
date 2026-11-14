@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../data/admin_repository.dart';
 import '../domain/admin_stats.dart';
 import '../models/admin_user.dart';
+import '../../community/view/admin_community_tab.dart';
 import 'widgets/admin_widgets.dart';
 
 /// Quản trị tối thiểu (spec 002): thống kê tài khoản, tìm kiếm, khoá/mở khoá.
@@ -78,62 +79,81 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Scaffold(
-      appBar: AppBar(title: Text('admin.title'.tr())),
-      body: StreamBuilder<List<AdminUser>>(
-        stream: _users,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return _Message(icon: Icons.gpp_bad_outlined, text: 'admin.err_load'.tr());
-          }
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final all = snapshot.data!;
-          final stats = computeAdminStats(all, (widget.now ?? DateTime.now)());
-          final shown = filterAdminUsers(all, _query);
-          final self = _repository.currentUid;
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 24),
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: AdminStatsRow(stats: stats),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: Row(
-                  children: [
-                    Icon(Icons.shield_outlined, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Expanded(child: Text('admin.privacy_note'.tr(), style: textTheme.bodySmall)),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: TextField(
-                  key: const Key('admin_search'),
-                  controller: _search,
-                  onChanged: (v) => setState(() => _query = v),
-                  decoration: InputDecoration(
-                    hintText: 'admin.search_hint'.tr(),
-                    prefixIcon: const Icon(Icons.search),
-                    border: const OutlineInputBorder(),
-                    isDense: true,
+    // Hai mục: Tài khoản (spec 002) và Cộng đồng (spec 004: thống kê, hàng chờ duyệt).
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('admin.title'.tr()),
+          bottom: TabBar(tabs: [
+            Tab(
+                key: const Key('admin_tab_users'),
+                icon: const Icon(Icons.people_outline),
+                text: 'admin.tab_users'.tr()),
+            Tab(
+                key: const Key('admin_tab_community'),
+                icon: const Icon(Icons.public),
+                text: 'admin.tab_community'.tr()),
+          ]),
+        ),
+        body: TabBarView(children: [
+          StreamBuilder<List<AdminUser>>(
+            stream: _users,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return _Message(icon: Icons.gpp_bad_outlined, text: 'admin.err_load'.tr());
+              }
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              final all = snapshot.data!;
+              final stats = computeAdminStats(all, (widget.now ?? DateTime.now)());
+              final shown = filterAdminUsers(all, _query);
+              final self = _repository.currentUid;
+              return ListView(
+                padding: const EdgeInsets.only(bottom: 24),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: AdminStatsRow(stats: stats),
                   ),
-                ),
-              ),
-              if (shown.isEmpty) _Message(icon: Icons.person_search_outlined, text: 'admin.empty'.tr()),
-              for (final user in shown)
-                AdminUserTile(
-                  key: Key('admin_user_${user.id}'),
-                  user: user,
-                  isSelf: user.id == self,
-                  busy: _busy.contains(user.id),
-                  onToggleLock: () => _toggleLock(user),
-                ),
-            ],
-          );
-        },
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: Row(
+                      children: [
+                        Icon(Icons.shield_outlined, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 6),
+                        Expanded(child: Text('admin.privacy_note'.tr(), style: textTheme.bodySmall)),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: TextField(
+                      key: const Key('admin_search'),
+                      controller: _search,
+                      onChanged: (v) => setState(() => _query = v),
+                      decoration: InputDecoration(
+                        hintText: 'admin.search_hint'.tr(),
+                        prefixIcon: const Icon(Icons.search),
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  if (shown.isEmpty) _Message(icon: Icons.person_search_outlined, text: 'admin.empty'.tr()),
+                  for (final user in shown)
+                    AdminUserTile(
+                      key: Key('admin_user_${user.id}'),
+                      user: user,
+                      isSelf: user.id == self,
+                      busy: _busy.contains(user.id),
+                      onToggleLock: () => _toggleLock(user),
+                    ),
+                ],
+              );
+            },
+          ),
+          AdminCommunityTab(now: widget.now),
+        ]),
       ),
     );
   }
