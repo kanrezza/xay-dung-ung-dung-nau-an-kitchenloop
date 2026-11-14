@@ -20,7 +20,10 @@ String shoppingItemLabel(ShoppingItem item, String languageCode) => [
 /// Tab Đi chợ: danh sách nguyên liệu gộp từ thực đơn của tuần đang xem, tick đã mua,
 /// thêm món lẻ. Danh sách được tính lại mỗi khi thực đơn hoặc công thức thay đổi.
 class ShoppingListScreen extends StatelessWidget {
-  const ShoppingListScreen({super.key, this.onOpenPlanner});
+  const ShoppingListScreen({super.key, this.onOpenPlanner, this.embedded = false});
+
+  /// Nằm trong tab Kế hoạch: không có tiêu đề riêng; menu nằm ở thanh chọn tuần.
+  final bool embedded;
 
   /// Chuyển sang tab Thực đơn (khi danh sách trống).
   final VoidCallback? onOpenPlanner;
@@ -52,30 +55,30 @@ class ShoppingListScreen extends StatelessWidget {
     final extras = result.items.where((i) => i.isExtra && (!shopping.hideChecked || !checked.contains(i.key))).toList();
     final theme = Theme.of(context);
 
+    final menu = PopupMenuButton<String>(
+      key: const Key('shopping_menu'),
+      onSelected: (v) => v == 'clear' ? shopping.clearChecked() : shopping.setHideChecked(!shopping.hideChecked),
+      itemBuilder: (_) => [
+        CheckedPopupMenuItem(value: 'hide', checked: shopping.hideChecked, child: Text('shopping.hide_checked'.tr())),
+        PopupMenuItem(value: 'clear', child: Text('shopping.clear_checked'.tr())),
+      ],
+    );
+    final header = WeekHeader(
+      weekStart: plan.weekStart,
+      isThisWeek: plan.isThisWeek,
+      onPrevious: plan.previousWeek,
+      onNext: plan.nextWeek,
+      onThisWeek: () => plan.showWeek(0),
+      trailing: embedded ? menu : null,
+    );
     return Scaffold(
-      appBar: AppBar(
-        title: Text('shopping.title'.tr()),
-        actions: [
-          PopupMenuButton<String>(
-            key: const Key('shopping_menu'),
-            onSelected: (v) => v == 'clear' ? shopping.clearChecked() : shopping.setHideChecked(!shopping.hideChecked),
-            itemBuilder: (_) => [
-              CheckedPopupMenuItem(value: 'hide', checked: shopping.hideChecked, child: Text('shopping.hide_checked'.tr())),
-              PopupMenuItem(value: 'clear', child: Text('shopping.clear_checked'.tr())),
-            ],
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: WeekHeader(
-            weekStart: plan.weekStart,
-            isThisWeek: plan.isThisWeek,
-            onPrevious: plan.previousWeek,
-            onNext: plan.nextWeek,
-            onThisWeek: () => plan.showWeek(0),
-          ),
-        ),
-      ),
+      appBar: embedded
+          ? PreferredSize(preferredSize: const Size.fromHeight(52), child: Material(child: Center(child: header)))
+          : AppBar(
+              title: Text('shopping.title'.tr()),
+              actions: [menu],
+              bottom: PreferredSize(preferredSize: const Size.fromHeight(48), child: header),
+            ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('add_extra'),
         onPressed: () => _addExtra(context),

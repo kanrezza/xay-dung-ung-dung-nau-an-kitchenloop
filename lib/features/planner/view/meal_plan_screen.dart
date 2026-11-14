@@ -21,7 +21,10 @@ void showMealPlanError(BuildContext context, MealPlanError error) {
 
 /// Tab Thực đơn: 7 ngày của tuần, mỗi ngày 3 bữa; thêm/xoá món, chuyển tuần.
 class MealPlanScreen extends StatelessWidget {
-  const MealPlanScreen({super.key, this.now});
+  const MealPlanScreen({super.key, this.now, this.embedded = false});
+
+  /// Nằm trong tab Kế hoạch: không có tiêu đề riêng, chỉ có thanh chọn tuần.
+  final bool embedded;
 
   /// Thời điểm hiện tại (test truyền vào để đánh dấu "hôm nay" ổn định).
   final DateTime Function()? now;
@@ -51,20 +54,20 @@ class MealPlanScreen extends StatelessWidget {
     final provider = context.watch<MealPlanProvider>();
     final recipes = {for (final r in context.watch<RecipeListProvider>().recipes) r.id: r};
     final today = dayIndexInWeek(provider.weekStart, (now ?? DateTime.now)());
+    final header = WeekHeader(
+      weekStart: provider.weekStart,
+      isThisWeek: provider.isThisWeek,
+      onPrevious: provider.previousWeek,
+      onNext: provider.nextWeek,
+      onThisWeek: () => provider.showWeek(0),
+    );
     return Scaffold(
-      appBar: AppBar(
-        title: Text('planner.title'.tr()),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: WeekHeader(
-            weekStart: provider.weekStart,
-            isThisWeek: provider.isThisWeek,
-            onPrevious: provider.previousWeek,
-            onNext: provider.nextWeek,
-            onThisWeek: () => provider.showWeek(0),
-          ),
-        ),
-      ),
+      appBar: embedded
+          ? PreferredSize(preferredSize: const Size.fromHeight(52), child: Material(child: Center(child: header)))
+          : AppBar(
+              title: Text('planner.title'.tr()),
+              bottom: PreferredSize(preferredSize: const Size.fromHeight(48), child: header),
+            ),
       body: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         itemCount: 7,

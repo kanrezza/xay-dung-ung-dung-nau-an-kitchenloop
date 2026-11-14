@@ -84,7 +84,7 @@ void main() {
                 localizationsDelegates: context.localizationDelegates,
                 supportedLocales: context.supportedLocales,
                 locale: context.locale,
-                home: RecipeListScreen(loginBuilder: (_) => const Scaffold(body: Text('LOGIN'))),
+                home: const RecipeListScreen(),
               ),
             ),
           ),
@@ -349,13 +349,6 @@ void main() {
     expect(find.text('Chiên trứng'), findsOneWidget);
 
     await goBack(tester); // thoát để dừng bộ đếm trước khi kết thúc test
-  });
-
-  testWidgets('biểu tượng tài khoản mở màn hình tài khoản', (tester) async {
-    await pumpApp(tester);
-    await tester.tap(find.byKey(const Key('open_account')));
-    await tester.pumpAndSettle();
-    expect(find.text('alice@test.dev'), findsOneWidget);
   });
 
   testWidgets('công thức chuyển từ dữ liệu cũ: hiện mục "Nội dung gốc" và chuỗi giữ chỗ được dịch', (tester) async {

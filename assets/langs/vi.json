@@ -301,7 +301,39 @@
     "language": "Ngôn ngữ",
     "logout": "Đăng xuất",
     "logout_confirm": "Bạn có chắc muốn đăng xuất? Các hẹn giờ đang chạy sẽ bị huỷ.",
-    "admin": "Quản trị"
+    "admin": "Quản trị",
+    "change_photo": "Ảnh đại diện",
+    "photo_gallery": "Chọn từ thư viện",
+    "photo_camera": "Chụp ảnh",
+    "photo_remove": "Xoá ảnh",
+    "photo_saved": "Đã đổi ảnh đại diện",
+    "photo_removed": "Đã xoá ảnh đại diện",
+    "photo_failed": "Không đổi được ảnh, hãy kiểm tra kết nối mạng.",
+    "edit_name": "Đổi tên hiển thị",
+    "name_label": "Tên hiển thị",
+    "name_hint": "Hiện trên bài bạn chia sẻ lên cộng đồng",
+    "name_saved": "Đã đổi tên hiển thị",
+    "err_name_empty": "Tên không được để trống.",
+    "err_name_long": "Tên tối đa 40 ký tự.",
+    "err_name_bad": "Tên không được chứa link hay từ ngữ không phù hợp.",
+    "err_name_failed": "Không lưu được, hãy thử lại.",
+    "stat_recipes": "Công thức",
+    "stat_week": "Món tuần này",
+    "stat_shared": "Bài chia sẻ",
+    "section_settings": "Cài đặt",
+    "theme": "Giao diện",
+    "theme_system": "Theo máy",
+    "theme_light": "Sáng",
+    "theme_dark": "Tối",
+    "section_account": "Tài khoản",
+    "change_password": "Đổi mật khẩu",
+    "change_password_desc": "Gửi email đặt lại mật khẩu tới {}?",
+    "send": "Gửi",
+    "password_sent": "Đã gửi email đặt lại mật khẩu tới {}",
+    "password_failed": "Không gửi được, hãy thử lại.",
+    "section_about": "Giới thiệu",
+    "about_desc": "Công thức, thực đơn tuần và đi chợ cho bếp nhà bạn.",
+    "version": "Bản {}"
   },
   "common": {
     "save": "Lưu",
@@ -352,7 +384,9 @@
     "recipes": "Công thức",
     "planner": "Thực đơn",
     "shopping": "Đi chợ",
-    "community": "Cộng đồng"
+    "community": "Cộng đồng",
+    "plan": "Kế hoạch",
+    "account": "Tài khoản"
   },
   "home": {
     "greeting_morning": "Chào buổi sáng",
@@ -421,5 +455,10 @@
     "missing": "Không tính được nguyên liệu cho: {} (công thức đã bị xoá).",
     "all_done": "Đã mua đủ rồi!",
     "err_save": "Không lưu được, hãy thử lại."
+  },
+  "plan": {
+    "title": "Kế hoạch",
+    "tab_meals": "Thực đơn",
+    "tab_shopping": "Đi chợ"
   }
 }

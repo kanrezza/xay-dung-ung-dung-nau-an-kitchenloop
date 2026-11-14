@@ -1,6 +1,9 @@
 import 'package:btl_ltdd/features/community/data/community_repository.dart';
 import 'package:btl_ltdd/features/community/providers/community_provider.dart';
+import 'package:btl_ltdd/features/account/providers/profile_provider.dart';
+import 'package:btl_ltdd/features/account/providers/theme_mode_provider.dart';
 import 'package:btl_ltdd/features/home/view/app_shell.dart';
+import 'package:btl_ltdd/features/home/view/shell_destination.dart';
 import 'package:btl_ltdd/features/home/view/widgets/recipe_cover.dart';
 import 'package:btl_ltdd/features/planner/data/planner_repository.dart';
 import 'package:btl_ltdd/features/planner/models/shopping_state.dart';
@@ -24,6 +27,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../support/cooking_fakes.dart';
 import '../support/community_fakes.dart';
 import '../support/planner_fakes.dart';
+import '../support/profile_fakes.dart';
 
 Map<String, dynamic> _ing(String id, String name, double? q, String? unit) =>
     {'id': id, 'name': name, 'quantity': q, 'unit': unit, 'isPlaceholder': false};
@@ -63,7 +67,7 @@ void main() {
     await recipe('tc', 'Trứng chiên', 1, [_ing('a', 'Trứng', 2, 'quả'), _ing('b', 'hành lá', 1, 'nhánh')]);
   });
 
-  Future<void> pumpShell(WidgetTester tester, {int tab = 0}) async {
+  Future<void> pumpShell(WidgetTester tester, {ShellDestination tab = ShellDestination.home}) async {
     tester.view.physicalSize = const Size(900, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -90,6 +94,8 @@ void main() {
                 ),
                 Provider<CommunityRepository>.value(value: FakeCommunityRepository()),
                 ChangeNotifierProvider(create: (ctx) => CommunityProvider(repository: ctx.read<CommunityRepository>(), recipes: repo)),
+                ChangeNotifierProvider(create: (_) => ProfileProvider(repository: FakeProfileRepository())),
+                ChangeNotifierProvider(create: (_) => ThemeModeProvider()),
                 Provider<CookingSessionStore>.value(value: CookingSessionStore(uidGetter: () => 'alice')),
                 Provider<TimerNotifier>.value(value: FakeTimerNotifier()),
                 Provider<ScreenAwake>.value(value: FakeScreenAwake()),
@@ -99,7 +105,7 @@ void main() {
                 localizationsDelegates: context.localizationDelegates,
                 supportedLocales: context.supportedLocales,
                 locale: context.locale,
-                home: AppShell(loginBuilder: (_) => const Scaffold(), initialTab: tab),
+                home: AppShell(loginBuilder: (_) => const Scaffold(), initial: tab),
               ),
             ),
           ),
@@ -137,26 +143,43 @@ void main() {
     });
   });
 
-  testWidgets('khung 4 tab: trang chủ trước, chuyển sang Công thức, Thực đơn, Đi chợ', (tester) async {
+  testWidgets('khung 5 tab: Trang chủ, Công thức, Kế hoạch (Thực đơn | Đi chợ), Cộng đồng, Tài khoản', (tester) async {
     await pumpShell(tester);
     expect(find.byKey(const Key('home_greeting')), findsOneWidget);
     expect(find.text('Chào buổi sáng'), findsOneWidget);
     await tester.tap(find.byKey(const Key('nav_recipes')));
     await settle(tester);
     expect(find.text('Thịt kho trứng'), findsWidgets);
-    await tester.tap(find.byKey(const Key('nav_planner')));
+    await tester.tap(find.byKey(const Key('nav_plan')));
     await settle(tester);
-    expect(find.text('Thực đơn tuần'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('nav_shopping')));
-    await settle(tester);
+    expect(find.text('Kế hoạch'), findsWidgets);
+    expect(find.byKey(const Key('add_0_dinner')), findsOneWidget, reason: 'tab con Thực đơn mở trước');
+    await tester.tap(find.byKey(const Key('plan_tab_shopping')));
+    await tester.pumpAndSettle();
     expect(find.text('Chưa có gì để mua. Lên thực đơn tuần, danh sách sẽ tự tạo.'), findsOneWidget);
     await tester.tap(find.byKey(const Key('shopping_go_plan')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('add_0_dinner')), findsOneWidget, reason: 'nút "Mở thực đơn" chuyển về tab con Thực đơn');
+    await tester.tap(find.byKey(const Key('nav_account')));
     await settle(tester);
-    expect(find.text('Thực đơn tuần'), findsOneWidget);
+    expect(find.byKey(const Key('profile_name')), findsOneWidget);
+  });
+
+  testWidgets('lối tắt trang chủ mở đúng tab con (Cần mua → Đi chợ); ảnh đại diện mở Tài khoản', (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.byKey(const Key('stat_shopping')));
+    await tester.pumpAndSettle();
+    expect(find.text('Chưa có gì để mua. Lên thực đơn tuần, danh sách sẽ tự tạo.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('nav_home')));
+    await settle(tester);
+    expect(find.byKey(const Key('avatar_initials')), findsWidgets, reason: 'chưa có ảnh: chữ cái đầu');
+    await tester.tap(find.byKey(const Key('open_account')));
+    await settle(tester);
+    expect(find.byKey(const Key('profile_name')), findsOneWidget);
   });
 
   testWidgets('thực đơn: thêm món vào bữa tối thứ 4 qua bảng chọn công thức', (tester) async {
-    await pumpShell(tester, tab: 2);
+    await pumpShell(tester, tab: ShellDestination.planner);
     expect(find.text('Hôm nay'), findsOneWidget, reason: 'thứ 4 được đánh dấu hôm nay');
     await tester.ensureVisible(find.byKey(const Key('add_2_dinner')));
     await tester.tap(find.byKey(const Key('add_2_dinner')));
@@ -182,8 +205,8 @@ void main() {
     expect(find.byKey(const Key('today_e1')), findsOneWidget);
     expect(find.byKey(const Key('today_e2')), findsNothing, reason: 'thứ 5 không phải hôm nay');
 
-    await tester.tap(find.byKey(const Key('nav_shopping')));
-    await settle(tester);
+    await tester.tap(find.byKey(const Key('stat_shopping')));
+    await tester.pumpAndSettle();
     expect(find.text('6 quả trứng'), findsOneWidget, reason: '4 + 2 quả gộp lại');
     expect(find.text('500 g thịt ba chỉ'), findsOneWidget);
     expect(find.text('Đã mua 0 / 3'), findsOneWidget);
@@ -194,7 +217,7 @@ void main() {
   });
 
   testWidgets('đi chợ: thêm món lẻ', (tester) async {
-    await pumpShell(tester, tab: 3);
+    await pumpShell(tester, tab: ShellDestination.shopping);
     await tester.tap(find.byKey(const Key('add_extra')));
     await settle(tester);
     await tester.enterText(find.byKey(const Key('extra_name')), 'Giấy bạc');

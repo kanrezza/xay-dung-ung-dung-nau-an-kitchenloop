@@ -2,10 +2,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/account_actions.dart';
 import '../models/recipe.dart';
 import '../providers/recipe_list_provider.dart';
-import 'account_menu_screen.dart';
 import 'recipe_detail_screen.dart';
 import 'recipe_editor_screen.dart';
 import 'widgets/recipe_card.dart';
@@ -13,10 +11,7 @@ import 'widgets/tag_filter_bar.dart';
 
 /// Tab Công thức: lưới công thức riêng của người dùng, tìm kiếm và lọc theo thẻ.
 class RecipeListScreen extends StatefulWidget {
-  const RecipeListScreen({super.key, required this.loginBuilder});
-
-  /// Màn hình đăng nhập, dùng khi người dùng đăng xuất từ màn hình tài khoản.
-  final WidgetBuilder loginBuilder;
+  const RecipeListScreen({super.key});
 
   @override
   State<RecipeListScreen> createState() => _RecipeListScreenState();
@@ -96,18 +91,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     }
   }
 
-  void _openAccount() {
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => AccountMenuScreen(
-          actions: context.read<AccountActions>(),
-          loginBuilder: widget.loginBuilder,
-        ),
-      ),
-    );
-  }
-
   void _openEditor([Recipe? existing]) {
     final suggestions = context.read<RecipeListProvider>().availableTags.map((t) => t.label).toList();
     Navigator.push(context, RecipeEditorScreen.route(context, existing: existing, tagSuggestions: suggestions));
@@ -127,14 +110,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('recipes.title'.tr()),
-        actions: [
-          IconButton(
-            key: const Key('open_account'),
-            tooltip: 'account.title'.tr(),
-            icon: const Icon(Icons.account_circle_outlined),
-            onPressed: _openAccount,
-          ),
-        ],
       ),
       // Danh sách trống đã có nút "Thêm công thức" ở giữa màn hình; không hiện thêm nút nổi.
       floatingActionButton: _showsEmptyState(provider)

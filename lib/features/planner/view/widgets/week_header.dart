@@ -15,7 +15,11 @@ class WeekHeader extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onThisWeek,
+    this.trailing,
   });
+
+  /// Nút phụ cuối hàng (ví dụ menu của màn Đi chợ khi nằm trong tab Kế hoạch).
+  final Widget? trailing;
 
   final DateTime weekStart;
   final bool isThisWeek;
@@ -50,6 +54,7 @@ class WeekHeader extends StatelessWidget {
               child: Text('planner.this_week'.tr()),
             ),
           ),
+          if (trailing != null) trailing!,
         ],
       ),
     );

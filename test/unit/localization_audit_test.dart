@@ -64,7 +64,8 @@ void main() {
 
   test('không có văn bản hiển thị nào bị viết cứng', () {
     // Tên ngôn ngữ luôn viết bằng chính ngôn ngữ đó nên không dịch.
-    const allowed = {'Tiếng Việt', 'English'};
+    // Tên ngôn ngữ và tên thương hiệu không dịch.
+    const allowed = {'Tiếng Việt', 'English', 'KitchenLoop'};
     final literal = RegExp(
       r'''(?:Text\(|labelText:|hintText:|helperText:|errorText:|tooltip:|message:|semanticLabel:|title:|content:|label:)\s*(?:const\s+Text\(\s*)?(['"])([^'"\n]*)\1(?!\s*\.(?:tr|plural))''',
     );

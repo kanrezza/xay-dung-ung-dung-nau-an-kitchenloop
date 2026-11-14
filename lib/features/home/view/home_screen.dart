@@ -2,34 +2,32 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../account/providers/profile_provider.dart';
+import '../../account/view/widgets/user_avatar.dart';
 import '../../planner/domain/shopping_builder.dart';
 import '../../planner/providers/meal_plan_provider.dart';
 import '../../planner/providers/shopping_provider.dart';
-import '../../recipes/data/account_actions.dart';
 import '../../recipes/data/cooking_session_store.dart';
 import '../../recipes/models/cooking_session.dart';
 import '../../recipes/models/recipe.dart';
 import '../../recipes/providers/recipe_list_provider.dart';
-import '../../recipes/view/account_menu_screen.dart';
 import '../../recipes/view/cooking_mode_screen.dart';
 import '../../recipes/view/recipe_detail_screen.dart';
 import '../../recipes/view/recipe_editor_screen.dart';
+import 'shell_destination.dart';
 import 'widgets/home_sections.dart';
 
 /// Trang chủ: lời chào, số liệu nhanh, món hôm nay, nấu tiếp, gợi ý.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
-    required this.loginBuilder,
-    required this.onOpenTab,
+    required this.onOpen,
     this.refreshToken = 0,
     this.now,
   });
 
-  final WidgetBuilder loginBuilder;
-
-  /// Chuyển tab trong khung chính (1 = Công thức, 2 = Thực đơn, 3 = Đi chợ).
-  final void Function(int tab) onOpenTab;
+  /// Mở một tab (hoặc tab con) trong khung chính.
+  final void Function(ShellDestination destination) onOpen;
 
   /// Tăng mỗi khi tab Trang chủ được chọn lại, để đọc lại các món đang nấu dở.
   final int refreshToken;
@@ -64,12 +62,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openDetail(String id) => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => RecipeDetailScreen(recipeId: id)));
 
-  void _openAccount() => Navigator.push(
-        context,
-        MaterialPageRoute<void>(
-          builder: (_) => AccountMenuScreen(actions: context.read<AccountActions>(), loginBuilder: widget.loginBuilder),
-        ),
-      );
 
   Future<void> _continue(Recipe recipe) async {
     await Navigator.push(context, CookingModeScreen.route(context, recipe));
@@ -106,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.only(bottom: 24),
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                 child: Row(
                   children: [
                     Expanded(
@@ -119,11 +111,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     ),
-                    IconButton.filledTonal(
+                    InkWell(
                       key: const Key('open_account'),
-                      tooltip: 'account.title'.tr(),
-                      icon: const Icon(Icons.person_outline),
-                      onPressed: _openAccount,
+                      customBorder: const CircleBorder(),
+                      onTap: () => widget.onOpen(ShellDestination.account),
+                      child: UserAvatar(profile: context.watch<ProfileProvider>().profile, radius: 22),
                     ),
                   ],
                 ),
@@ -141,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.menu_book,
                               value: recipeList.recipes.length,
                               label: 'home.stat_recipes'.tr(),
-                              onTap: () => widget.onOpenTab(1))),
+                              onTap: () => widget.onOpen(ShellDestination.recipes))),
                       const SizedBox(width: 8),
                       Expanded(
                           child: StatTile(
@@ -149,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.calendar_month,
                               value: weekCount,
                               label: 'home.stat_week'.tr(),
-                              onTap: () => widget.onOpenTab(2))),
+                              onTap: () => widget.onOpen(ShellDestination.planner))),
                       const SizedBox(width: 8),
                       Expanded(
                           child: StatTile(
@@ -157,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.shopping_basket,
                               value: toBuy,
                               label: 'home.stat_shopping'.tr(),
-                              onTap: () => widget.onOpenTab(3))),
+                              onTap: () => widget.onOpen(ShellDestination.shopping))),
                     ],
                   ),
                 ),
@@ -184,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-              SectionTitle('home.today'.tr(), action: 'home.plan_now'.tr(), onAction: () => widget.onOpenTab(2)),
+              SectionTitle('home.today'.tr(), action: 'home.plan_now'.tr(), onAction: () => widget.onOpen(ShellDestination.planner)),
               if (today.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -194,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       leading: const Icon(Icons.event_note),
                       title: Text('home.today_empty'.tr()),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => widget.onOpenTab(2),
+                      onTap: () => widget.onOpen(ShellDestination.planner),
                     ),
                   ),
                 )
@@ -232,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ] else ...[
-                SectionTitle('home.suggestions'.tr(), action: 'home.see_all'.tr(), onAction: () => widget.onOpenTab(1)),
+                SectionTitle('home.suggestions'.tr(), action: 'home.see_all'.tr(), onAction: () => widget.onOpen(ShellDestination.recipes)),
                 SizedBox(
                   height: 210,
                   child: ListView.separated(

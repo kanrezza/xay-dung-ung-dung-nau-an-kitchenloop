@@ -9,6 +9,9 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart'; // 1. MỚI THÊM: Import thư viện
 
 import 'app_theme.dart';
+import 'features/account/data/profile_repository.dart';
+import 'features/account/providers/profile_provider.dart';
+import 'features/account/providers/theme_mode_provider.dart';
 import 'features/admin/data/admin_repository.dart';
 import 'features/community/data/community_repository.dart';
 import 'features/community/providers/community_provider.dart';
@@ -57,13 +60,9 @@ void main() async {
   // 3. MỚI THÊM: Bọc MyApp bằng EasyLocalization
   runApp(
     EasyLocalization(
-      supportedLocales: const [
-        Locale('vi'),
-        Locale('en')
-      ], // Các ngôn ngữ bạn muốn hỗ trợ
+      supportedLocales: const [Locale('vi'), Locale('en')], // Các ngôn ngữ bạn muốn hỗ trợ
       path: 'assets/langs', // Đường dẫn thư mục chứa 2 file vi.json và en.json
-      fallbackLocale: const Locale(
-          'vi'), // Ngôn ngữ mặc định nếu máy người dùng dùng tiếng khác
+      fallbackLocale: const Locale('vi'), // Ngôn ngữ mặc định nếu máy người dùng dùng tiếng khác
       child: MyApp(signedIn: signedIn),
     ),
   );
@@ -137,21 +136,29 @@ class MyApp extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider(create: (_) => UserProvider()),
+        // Hồ sơ (tên, ảnh đại diện) và chế độ giao diện (spec 005).
+        Provider<ProfileRepository>(
+          // Ảnh đại diện lưu thẳng trong hồ sơ Firestore (Cloud Storage cần gói trả phí).
+          create: (_) => FirebaseProfileRepository(firestore: FirebaseFirestore.instance, auth: FirebaseAuth.instance),
+        ),
+        ChangeNotifierProvider(create: (ctx) => ProfileProvider(repository: ctx.read<ProfileRepository>())),
+        ChangeNotifierProvider(create: (_) => ThemeModeProvider()),
       ],
-      child: MaterialApp(
-        // 4. MỚI THÊM: Cấu hình để MaterialApp nhận diện ngôn ngữ
-        localizationsDelegates: context.localizationDelegates,
-        supportedLocales: context.supportedLocales,
-        locale: context.locale,
+      child: Builder(
+        builder: (context) => MaterialApp(
+          // 4. MỚI THÊM: Cấu hình để MaterialApp nhận diện ngôn ngữ
+          localizationsDelegates: context.localizationDelegates,
+          supportedLocales: context.supportedLocales,
+          locale: context.locale,
 
-        debugShowCheckedModeBanner: false,
-        title: 'KitchenLoop',
-        theme: buildAppTheme(),
-        darkTheme: buildAppTheme(brightness: Brightness.dark),
-        themeMode: ThemeMode.system,
-        home: signedIn
-            ? AppShell(loginBuilder: (_) => const LoginScreen())
-            : const LoginScreen(),
+          debugShowCheckedModeBanner: false,
+          title: 'KitchenLoop',
+          theme: buildAppTheme(),
+          darkTheme: buildAppTheme(brightness: Brightness.dark),
+          // Theo máy / Sáng / Tối, chọn ở tab Tài khoản và được nhớ trên máy.
+          themeMode: context.watch<ThemeModeProvider>().mode,
+          home: signedIn ? AppShell(loginBuilder: (_) => const LoginScreen()) : const LoginScreen(),
+        ),
       ),
     );
   }
