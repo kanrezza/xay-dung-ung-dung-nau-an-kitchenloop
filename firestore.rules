@@ -52,7 +52,24 @@ service cloud.firestore {
           && !changedKeys().hasAny(['role', 'isLocked', 'lockedAt'])
           && noPassword()
           // lastPostAt (chống spam bài cộng đồng) chỉ đặt được bằng thời gian máy chủ.
-          && (!changedKeys().hasAny(['lastPostAt']) || request.resource.data.lastPostAt == request.time))
+          && (!changedKeys().hasAny(['lastPostAt']) || request.resource.data.lastPostAt == request.time)
+          // Tên hiển thị (hiện trên bài cộng đồng): 1–40 ký tự, không link/từ cấm (spec 005).
+          && (!changedKeys().hasAny(['name'])
+            || (request.resource.data.name is string
+              && request.resource.data.name.trim().size() >= 1 && request.resource.data.name.size() <= 40
+              && cleanText(request.resource.data.name)))
+          // Ảnh đại diện dạng link: chỉ link Firebase Storage hoặc rỗng, không nhận link tuỳ ý.
+          && (!changedKeys().hasAny(['avatarUrl'])
+            || request.resource.data.avatarUrl == null
+            || (request.resource.data.avatarUrl is string
+              && request.resource.data.avatarUrl.matches('https://firebasestorage[.]googleapis[.]com/.*')))
+          // Ảnh đại diện lưu thẳng trong hồ sơ (ảnh đã thu nhỏ 256 px, dạng data URI base64):
+          // chỉ nhận ảnh, tối đa 150 000 ký tự (~110 KB) để hồ sơ luôn nhỏ.
+          && (!changedKeys().hasAny(['avatarData'])
+            || request.resource.data.avatarData == null
+            || (request.resource.data.avatarData is string
+              && request.resource.data.avatarData.size() <= 150000
+              && request.resource.data.avatarData.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+'))))
         || (isAdmin()
           && userId != request.auth.uid
           && changedKeys().hasOnly(['isLocked', 'lockedAt'])

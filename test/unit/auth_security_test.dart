@@ -68,9 +68,13 @@ void main() {
   group('storage.rules', () {
     final rules = File('storage.rules').readAsStringSync();
 
-    test('không còn thư mục ai cũng ghi được (food_images, avatars)', () {
+    test('không còn thư mục ai cũng ghi được (food_images; avatars cũ dạng /avatars/{fileName})', () {
       expect(rules, isNot(contains('match /food_images')));
-      expect(rules, isNot(contains('match /avatars')));
+      expect(rules, isNot(contains('match /avatars/{fileName}')));
+      // Ảnh đại diện mới (spec 005): mỗi người một thư mục, chỉ chủ tài khoản ghi/xoá.
+      final avatars = rules.substring(rules.indexOf('match /avatars/{userId}/{fileName}'));
+      expect(avatars, contains('allow create, update: if isOwner(userId)'));
+      expect(avatars, contains('allow delete: if isOwner(userId);'));
       expect(rules, isNot(contains('allow read: if true')));
     });
 

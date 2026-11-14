@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Storage của KitchenLoop: chỉ ảnh công thức, mỗi người chỉ ghi vào thư mục của mình.
+// Storage của KitchenLoop: ảnh công thức và ảnh đại diện, mỗi người chỉ ghi vào thư mục của mình.
 //
 // Ảnh hiển thị trong app qua "download URL" (có token riêng cho từng file) nên không
 // cần quyền đọc công khai ở đây. Các thư mục của bản cũ (avatars, food_images, video
@@ -20,6 +20,15 @@ service firebase.storage {
         && request.resource.contentType.matches('image/(jpeg|png|gif|webp|heic|heif)')
         && request.resource.size < 5 * 1024 * 1024;
       // Cho phép chủ sở hữu xoá ảnh (dọn ảnh khi xoá/đổi ảnh công thức).
+      allow delete: if isOwner(userId);
+    }
+
+    // Ảnh đại diện (spec 005): avatars/{uid}/{thời điểm}.jpg, đã thu nhỏ tối đa 512 px.
+    match /avatars/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update: if isOwner(userId)
+        && request.resource.contentType.matches('image/(jpeg|png|webp|heic|heif)')
+        && request.resource.size < 2 * 1024 * 1024;
       allow delete: if isOwner(userId);
     }
 

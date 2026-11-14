@@ -325,6 +325,24 @@ await t('không ghi vào collection followers', assertFails(setDoc(doc(bob, 'fol
 await t('không đọc collection followers', assertFails(getDocs(collection(alice, 'followers'))));
 await t('collection lạ bị từ chối mặc định', assertFails(setDoc(doc(alice, 'random/x'), { a: 1 })));
 
+console.log('\n== hồ sơ: tên hiển thị, ảnh đại diện (spec 005) ==');
+await t('alice đổi tên hiển thị', assertSucceeds(updateDoc(doc(alice, 'users/alice'), { name: 'An Nguyễn' })));
+await t('tên rỗng bị từ chối', assertFails(updateDoc(doc(alice, 'users/alice'), { name: '   ' })));
+await t('tên quá 40 ký tự bị từ chối', assertFails(updateDoc(doc(alice, 'users/alice'), { name: 'a'.repeat(41) })));
+await t('tên có link bị từ chối', assertFails(updateDoc(doc(alice, 'users/alice'), { name: 'shop.vn giá rẻ' })));
+await t('tên có từ cấm bị từ chối', assertFails(updateDoc(doc(alice, 'users/alice'), { name: 'casino 88' })));
+await t('ảnh đại diện là link Firebase Storage', assertSucceeds(updateDoc(doc(alice, 'users/alice'), { avatarUrl: 'https://firebasestorage.googleapis.com/v0/b/x/o/avatars%2Falice%2F1.jpg?alt=media&token=t' })));
+await t('xoá ảnh đại diện (null)', assertSucceeds(updateDoc(doc(alice, 'users/alice'), { avatarUrl: null })));
+await t('link ảnh tuỳ ý bị từ chối', assertFails(updateDoc(doc(alice, 'users/alice'), { avatarUrl: 'https://tracker.example/pixel.gif' })));
+await t('bob không đổi tên của alice', assertFails(updateDoc(doc(bob, 'users/alice'), { name: 'Hacked' })));
+const smallJpeg = 'data:image/jpeg;base64,' + 'A'.repeat(40000);
+await t('ảnh đại diện lưu trong hồ sơ (data URI ~30 KB)', assertSucceeds(updateDoc(doc(alice, 'users/alice'), { avatarData: smallJpeg })));
+await t('xoá ảnh đại diện trong hồ sơ (null)', assertSucceeds(updateDoc(doc(alice, 'users/alice'), { avatarData: null })));
+await t('ảnh quá 150 000 ký tự bị từ chối', assertFails(updateDoc(doc(alice, 'users/alice'), { avatarData: 'data:image/jpeg;base64,' + 'A'.repeat(150001) })));
+await t('không phải ảnh (svg/html) bị từ chối', assertFails(updateDoc(doc(alice, 'users/alice'), { avatarData: 'data:image/svg+xml;base64,PHN2Zz4=' })));
+await t('chuỗi tuỳ ý không phải base64 bị từ chối', assertFails(updateDoc(doc(alice, 'users/alice'), { avatarData: 'data:image/png;base64,<script>' })));
+await t('bob không đặt ảnh đại diện cho alice', assertFails(updateDoc(doc(bob, 'users/alice'), { avatarData: smallJpeg })));
+
 console.log('\n== Storage: ảnh công thức ==');
 const img = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
 const jpeg = { contentType: 'image/jpeg' };
@@ -346,6 +364,14 @@ await t('không ghi vào food_images (thư mục cũ, trước đây ai cũng gh
 await t('không ghi vào avatars', assertFails(uploadBytes(ref(sAlice, 'avatars/alice.jpg'), img, jpeg)));
 await t('không ghi video vào foods/{uid} (đường dẫn cũ)', assertFails(uploadBytes(ref(sAlice, 'foods/alice/video.mp4'), img, { contentType: 'video/mp4' })));
 await t('bob không xoá ảnh của alice', assertFails(deleteObject(ref(sBob, own))));
+await t('alice tải ảnh đại diện', assertSucceeds(uploadBytes(ref(sAlice, 'avatars/alice/1.jpg'), img, jpeg)));
+await t('người đã đăng nhập khác đọc được ảnh đại diện', assertSucceeds(getBytes(ref(sBob, 'avatars/alice/1.jpg'))));
+await t('chưa đăng nhập không đọc ảnh đại diện', assertFails(getBytes(ref(sAnon, 'avatars/alice/1.jpg'))));
+await t('bob không ghi ảnh đại diện vào thư mục alice', assertFails(uploadBytes(ref(sBob, 'avatars/alice/2.jpg'), img, jpeg)));
+await t('ảnh đại diện trên 2 MB bị từ chối', assertFails(uploadBytes(ref(sAlice, 'avatars/alice/big.jpg'), new Uint8Array(2 * 1024 * 1024 + 1), jpeg)));
+await t('ảnh đại diện phải là ảnh', assertFails(uploadBytes(ref(sAlice, 'avatars/alice/a.gif'), img, { contentType: 'image/gif' })));
+await t('bob không xoá ảnh đại diện của alice', assertFails(deleteObject(ref(sBob, 'avatars/alice/1.jpg'))));
+await t('alice xoá ảnh đại diện của mình', assertSucceeds(deleteObject(ref(sAlice, 'avatars/alice/1.jpg'))));
 await t('alice xoá ảnh của mình', assertSucceeds(deleteObject(ref(sAlice, own))));
 
 console.log(`\n${pass} đạt, ${fail} lỗi`);
