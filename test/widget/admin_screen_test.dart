@@ -24,6 +24,9 @@ class FakeAdminRepository implements AdminRepository {
   Future<bool> isCurrentUserAdmin() async => true;
 
   @override
+  Stream<bool> watchIsAdmin() => Stream.value(true);
+
+  @override
   Stream<List<AdminUser>> watchUsers() async* {
     yield users;
     yield* _controller.stream;

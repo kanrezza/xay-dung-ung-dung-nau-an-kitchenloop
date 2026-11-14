@@ -34,10 +34,18 @@ abstract class CommunityRepository {
   Future<void> unshare(String postId);
   Future<void> report(String postId, ReportReason reason);
 
+  /// Thích / bỏ thích bài của người khác (spec 007).
+  Future<void> setLiked(String postId, bool liked);
+
+  /// Thông báo chung do quản trị viên viết; chuỗi rỗng = không có.
+  Stream<String> watchAnnouncement();
+
   // --- Quản trị viên ---
   Stream<List<CommunityPost>> watchAllPosts();
   Future<List<PostReport>> reportsOf(String postId);
   Future<void> setStatus(String postId, PostStatus status, {bool resetReports = false});
+  Future<void> setFeatured(String postId, bool featured);
+  Future<void> setAnnouncement(String text);
 }
 
 class FirestoreCommunityRepository implements CommunityRepository {
@@ -76,8 +84,7 @@ class FirestoreCommunityRepository implements CommunityRepository {
   }
 
   @override
-  Stream<List<CommunityPost>> watchFeed() =>
-      _posts.where('status', isEqualTo: 'visible').limit(200).snapshots().map(_decode);
+  Stream<List<CommunityPost>> watchFeed() => _posts.where('status', isEqualTo: 'visible').limit(200).snapshots().map(_decode);
 
   @override
   Future<CommunityPost?> myPostFor(String recipeId) async {
@@ -99,19 +106,35 @@ class FirestoreCommunityRepository implements CommunityRepository {
     }
   }
 
+  /// Quyền quản trị lấy từ custom claim trong token (rules kiểm lại cờ `byAdmin` theo đúng quyền này).
+  Future<bool> _isAdmin() async {
+    try {
+      final token = await _auth.currentUser?.getIdTokenResult();
+      return token?.claims?['admin'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Future<ShareKind> share(Recipe recipe) => _guard(() async {
         final uid = _requireUid();
+        final admin = await _isAdmin();
         final userRef = _firestore.collection('users').doc(uid);
         final user = (await userRef.get()).data() ?? const {};
-        final name = user['name'] is String && (user['name'] as String).trim().isNotEmpty
-            ? (user['name'] as String).trim()
-            : 'Bếp nhà KitchenLoop';
+        final name =
+            user['name'] is String && (user['name'] as String).trim().isNotEmpty ? (user['name'] as String).trim() : 'Bếp nhà KitchenLoop';
         final post = CommunityPost.fromRecipe(recipe, authorName: name.length > authorNameMax ? name.substring(0, authorNameMax) : name);
         final ref = _posts.doc(post.id);
         final existing = await ref.get();
         if (existing.exists) {
-          await ref.update({...post.contentMap()..remove('authorId')..remove('sourceRecipeId'), 'updatedAt': FieldValue.serverTimestamp()});
+          await ref.update({
+            ...post.contentMap()
+              ..remove('authorId')
+              ..remove('sourceRecipeId'),
+            'byAdmin': admin,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
           return ShareKind.updated;
         }
         final last = user['lastPostAt'];
@@ -125,6 +148,7 @@ class FirestoreCommunityRepository implements CommunityRepository {
             ...post.contentMap(),
             'status': 'visible',
             'reportCount': 0,
+            'byAdmin': admin,
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           });
@@ -148,6 +172,32 @@ class FirestoreCommunityRepository implements CommunityRepository {
           tx.update(ref, {'reportCount': count, if (count >= reportsToHide) 'status': 'hidden'});
         });
       });
+
+  @override
+  Future<void> setLiked(String postId, bool liked) => _guard(() {
+        final uid = _requireUid();
+        return _posts.doc(postId).update({
+          'likedBy': liked ? FieldValue.arrayUnion([uid]) : FieldValue.arrayRemove([uid]),
+        });
+      });
+
+  DocumentReference<Map<String, dynamic>> get _announcement => _firestore.collection('appConfig').doc('announcement');
+
+  @override
+  Stream<String> watchAnnouncement() => _announcement.snapshots().map((d) {
+        final text = d.data()?['text'];
+        return text is String ? text.trim() : '';
+      });
+
+  @override
+  Future<void> setAnnouncement(String text) => _guard(
+        () => _announcement.set({'text': text.trim(), 'updatedAt': FieldValue.serverTimestamp()}),
+      );
+
+  @override
+  Future<void> setFeatured(String postId, bool featured) => _guard(
+        () => _posts.doc(postId).update({'featured': featured, 'updatedAt': FieldValue.serverTimestamp()}),
+      );
 
   @override
   Stream<List<CommunityPost>> watchAllPosts() => _posts.snapshots().map(_decode);

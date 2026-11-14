@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../recipes/data/recipe_repository.dart';
-import '../../recipes/domain/text_normalizer.dart';
 import '../../recipes/models/recipe.dart';
 import '../data/community_repository.dart';
+import '../domain/feed_arrange.dart';
 import '../domain/moderation.dart';
 import '../models/community_post.dart';
 
@@ -63,17 +63,68 @@ class CommunityProvider extends ChangeNotifier {
     });
   }
 
-  List<CommunityPost> get posts {
-    final q = normalizeForSearch(_query);
-    if (q.isEmpty) return _posts;
-    return _posts
-        .where((p) => normalizeForSearch('${p.title} ${p.authorName} ${p.tags.join(' ')}').contains(q))
-        .toList();
-  }
+  FeedSort _sort = FeedSort.newest;
+  String? _tag;
+
+  FeedSort get sort => _sort;
+
+  /// Thẻ đang lọc (null = tất cả).
+  String? get tag => _tag;
+
+  /// Bài sau khi lọc theo từ khoá, thẻ và xếp theo [sort].
+  List<CommunityPost> get posts => arrangeFeed(_posts, query: _query, tag: _tag, sort: _sort);
+
+  /// Tất cả bài đang hiện, chưa lọc.
+  List<CommunityPost> get allPosts => _posts;
+
+  /// Bài quản trị viên ghim nổi bật.
+  List<CommunityPost> get featured => featuredPosts(_posts);
+
+  /// Thẻ phổ biến để làm chip lọc.
+  List<String> get tags => popularTags(_posts);
 
   void setQuery(String value) {
     _query = value;
     notifyListeners();
+  }
+
+  void setSort(FeedSort value) {
+    if (value == _sort) return;
+    _sort = value;
+    notifyListeners();
+  }
+
+  /// Chọn lại thẻ đang chọn = bỏ lọc.
+  void toggleTag(String value) {
+    _tag = _tag == value ? null : value;
+    notifyListeners();
+  }
+
+  /// Bản mới nhất của bài (sau khi thích/ghim, màn xem bài cần bản mới).
+  CommunityPost? postById(String id) {
+    for (final p in _posts) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  /// Thích/bỏ thích; `true` nếu thành công.
+  Future<bool> toggleLike(CommunityPost post) => _attempt(() => _repository.setLiked(post.id, !post.isLikedBy(currentUid)));
+
+  // --- Quản trị viên (rules chặn người thường) ---
+
+  Future<bool> setFeatured(CommunityPost post, bool featured) => _attempt(() => _repository.setFeatured(post.id, featured));
+
+  Future<bool> setStatus(CommunityPost post, PostStatus status) =>
+      _attempt(() => _repository.setStatus(post.id, status, resetReports: status == PostStatus.visible));
+
+  Future<bool> _attempt(Future<void> Function() action) async {
+    try {
+      await action();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Kiểm tra trước bằng cùng bộ quy tắc với firestore.rules, rồi mới gửi.
@@ -81,8 +132,14 @@ class CommunityProvider extends ChangeNotifier {
     final issues = checkPost(
       title: recipe.title,
       note: recipe.note,
-      ingredientNames: [for (final i in recipe.ingredients) if (!i.isPlaceholder) i.name],
-      stepTexts: [for (final s in recipe.steps) if (!s.isPlaceholder) s.text],
+      ingredientNames: [
+        for (final i in recipe.ingredients)
+          if (!i.isPlaceholder) i.name
+      ],
+      stepTexts: [
+        for (final s in recipe.steps)
+          if (!s.isPlaceholder) s.text
+      ],
       tags: recipe.tags,
     );
     if (issues.isNotEmpty) return ShareOutcome.issues(issues);

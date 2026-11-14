@@ -260,6 +260,28 @@ service cloud.firestore {
           || (n >= 3 && request.resource.data.status == 'hidden'));
     }
 
+    // Lượt thích (spec 007): người khác thêm/bớt đúng uid của mình trong likedBy, không đụng trường khác.
+    function validLikeChange() {
+      let me = request.auth.uid;
+      let before = resource.data.get('likedBy', []);
+      let after = request.resource.data.likedBy;
+      return signedIn() && notLocked()
+        && resource.data.authorId != me
+        && changedKeys().hasOnly(['likedBy'])
+        && after is list && after.size() <= 5000
+        && ((resource.data.status == 'visible' && !(me in before)
+              && after.toSet() == before.toSet().union([me].toSet()) && after.size() == before.size() + 1)
+          || (me in before
+              && after.toSet() == before.toSet().difference([me].toSet()) && after.size() == before.size() - 1));
+    }
+
+    // Cờ do hệ thống quản lý: bài mới chưa nổi bật, chưa có lượt thích; byAdmin phải đúng quyền thật.
+    function freshPostFlags(d) {
+      return d.get('featured', false) == false
+        && d.get('likedBy', []).size() == 0
+        && d.get('byAdmin', false) == isAdmin();
+    }
+
     match /communityPosts/{postId} {
       // Bài đang hiện: ai đăng nhập (không bị khoá) cũng xem được. Bài ẩn/gỡ: chỉ tác giả và admin.
       allow get: if signedIn() && notLocked()
@@ -276,22 +298,27 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
         && validPost(request.resource.data)
+        && freshPostFlags(request.resource.data)
         && postRateOk();
 
       allow update: if
         // Tác giả chia sẻ lại (sửa nội dung): không đổi được trạng thái, số báo cáo, chủ bài.
         (signedIn() && notLocked()
           && resource.data.authorId == request.auth.uid
-          && !changedKeys().hasAny(['authorId', 'sourceRecipeId', 'status', 'reportCount', 'createdAt'])
+          && !changedKeys().hasAny(['authorId', 'sourceRecipeId', 'status', 'reportCount', 'createdAt', 'likedBy', 'featured'])
+          && request.resource.data.get('byAdmin', false) == isAdmin()
           && request.resource.data.updatedAt == request.time
           && validPost(request.resource.data))
-        // Quản trị viên duyệt bài: chỉ đổi trạng thái, đặt lại số báo cáo.
+        // Quản trị viên duyệt bài: đổi trạng thái, đặt lại số báo cáo, ghim/bỏ ghim nổi bật (spec 007).
         || (isAdmin()
-          && changedKeys().hasOnly(['status', 'reportCount', 'updatedAt'])
+          && changedKeys().hasOnly(['status', 'reportCount', 'updatedAt', 'featured'])
           && request.resource.data.status in ['visible', 'hidden', 'removed']
-          && request.resource.data.reportCount is int && request.resource.data.reportCount >= 0)
+          && request.resource.data.reportCount is int && request.resource.data.reportCount >= 0
+          && request.resource.data.get('featured', false) is bool)
         // Người khác báo cáo.
-        || validReportBump(postId);
+        || validReportBump(postId)
+        // Người khác thích / bỏ thích.
+        || validLikeChange();
 
       allow delete: if signedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
 
@@ -307,6 +334,19 @@ service cloud.firestore {
         allow read: if isAdmin();
         allow update, delete: if false;
       }
+    }
+
+    // ===================== THÔNG BÁO CHUNG (spec 007) =====================
+    // Mọi người (không bị khoá) đọc; chỉ quản trị viên viết. Chữ rỗng = không có thông báo.
+    match /appConfig/announcement {
+      allow get: if signedIn() && notLocked();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['text', 'updatedAt'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 200
+        && cleanText(request.resource.data.text)
+        && request.resource.data.updatedAt == request.time;
+      allow list, delete: if false;
     }
 
     // ===================== COLLECTION CŨ KHÁC =====================

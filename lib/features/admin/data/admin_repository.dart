@@ -13,6 +13,9 @@ abstract class AdminRepository {
   /// `true` nếu tài khoản đang đăng nhập có custom claim `admin == true`.
   Future<bool> isCurrentUserAdmin();
 
+  /// Quyền quản trị theo phiên đăng nhập hiện tại; phát lại khi đăng nhập/đăng xuất hoặc token đổi.
+  Stream<bool> watchIsAdmin();
+
   /// Danh sách hồ sơ `users`, cập nhật theo thời gian thực.
   Stream<List<AdminUser>> watchUsers();
 
@@ -49,6 +52,18 @@ class FirestoreAdminRepository implements AdminRepository {
       }
     }
   }
+
+  @override
+  Stream<bool> watchIsAdmin() => _auth.idTokenChanges().asyncMap((user) async {
+        if (user == null) return false;
+        try {
+          // Không ép làm mới ở đây: làm mới token lại phát idTokenChanges (vòng lặp).
+          final token = await user.getIdTokenResult();
+          return token.claims?['admin'] == true;
+        } catch (_) {
+          return false;
+        }
+      });
 
   @override
   Stream<List<AdminUser>> watchUsers() => _firestore.collection('users').snapshots().map(

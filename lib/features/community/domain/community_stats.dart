@@ -10,6 +10,9 @@ class CommunityStats {
     required this.totalReports,
     required this.perDay,
     required this.authors,
+    this.totalLikes = 0,
+    this.featured = 0,
+    this.topPosts = const [],
   });
 
   final int total;
@@ -27,6 +30,15 @@ class CommunityStats {
 
   /// Số người đã đăng bài.
   final int authors;
+
+  /// Tổng lượt thích trên các bài đang hiện (spec 007).
+  final int totalLikes;
+
+  /// Số bài đang được ghim nổi bật.
+  final int featured;
+
+  /// Tối đa 3 bài đang hiện được thích nhiều nhất (ít nhất 1 lượt thích).
+  final List<CommunityPost> topPosts;
 }
 
 CommunityStats computeCommunityStats(List<CommunityPost> posts, DateTime now) {
@@ -39,6 +51,7 @@ CommunityStats computeCommunityStats(List<CommunityPost> posts, DateTime now) {
     final diff = (today.difference(day).inHours / 24).round();
     if (diff >= 0 && diff < 7) perDay[6 - diff]++;
   }
+  final visible = posts.where((p) => p.status == PostStatus.visible).toList();
   return CommunityStats(
     total: posts.length,
     visible: posts.where((p) => p.status == PostStatus.visible).length,
@@ -47,5 +60,8 @@ CommunityStats computeCommunityStats(List<CommunityPost> posts, DateTime now) {
     totalReports: posts.fold(0, (sum, p) => sum + p.reportCount),
     perDay: perDay,
     authors: posts.map((p) => p.authorId).toSet().length,
+    totalLikes: visible.fold(0, (sum, p) => sum + p.likeCount),
+    featured: visible.where((p) => p.featured).length,
+    topPosts: (visible.where((p) => p.likeCount > 0).toList()..sort((a, b) => b.likeCount.compareTo(a.likeCount))).take(3).toList(),
   );
 }

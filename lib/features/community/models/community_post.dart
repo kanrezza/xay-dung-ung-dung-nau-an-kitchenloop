@@ -42,6 +42,9 @@ class CommunityPost {
     this.reportCount = 0,
     this.createdAt,
     this.updatedAt,
+    this.likedBy = const [],
+    this.featured = false,
+    this.byAdmin = false,
   });
 
   final String id;
@@ -58,6 +61,38 @@ class CommunityPost {
   final int reportCount;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  /// UID những người đã thích bài (spec 007). Rules chỉ cho mỗi người thêm/bớt uid của chính mình.
+  final List<String> likedBy;
+
+  /// Quản trị viên ghim lên dải "Nổi bật".
+  final bool featured;
+
+  /// Bài do quản trị viên đăng (rules kiểm cờ này khớp quyền thật).
+  final bool byAdmin;
+
+  int get likeCount => likedBy.length;
+  bool isLikedBy(String? uid) => uid != null && likedBy.contains(uid);
+
+  CommunityPost copyWith({PostStatus? status, int? reportCount, List<String>? likedBy, bool? featured}) => CommunityPost(
+        id: id,
+        authorId: authorId,
+        authorName: authorName,
+        sourceRecipeId: sourceRecipeId,
+        title: title,
+        baseServings: baseServings,
+        ingredients: ingredients,
+        steps: steps,
+        note: note,
+        tags: tags,
+        status: status ?? this.status,
+        reportCount: reportCount ?? this.reportCount,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        likedBy: likedBy ?? this.likedBy,
+        featured: featured ?? this.featured,
+        byAdmin: byAdmin,
+      );
 
   static String idFor(String authorId, String recipeId) => '${authorId}_$recipeId';
 
@@ -108,6 +143,9 @@ class CommunityPost {
       reportCount: count is int ? count : 0,
       createdAt: d['createdAt'] is DateTime ? d['createdAt'] as DateTime : null,
       updatedAt: d['updatedAt'] is DateTime ? d['updatedAt'] as DateTime : null,
+      likedBy: d['likedBy'] is List ? (d['likedBy'] as List).whereType<String>().toSet().toList() : const [],
+      featured: d['featured'] == true,
+      byAdmin: d['byAdmin'] == true,
     );
   }
 

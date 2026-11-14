@@ -98,4 +98,51 @@ void main() {
     await repo('an').unshare('an_r1');
     expect(await repo('an').myPostFor('r1'), isNull);
   });
+
+  group('spec 007', () {
+    FirestoreCommunityRepository adminRepo(String uid) => FirestoreCommunityRepository(
+          firestore: db,
+          auth: MockFirebaseAuth(signedIn: true, mockUser: MockUser(uid: uid, customClaim: {'admin': true})),
+          now: () => now,
+        );
+
+    test('thích / bỏ thích chỉ thêm, bớt uid của mình', () async {
+      await repo('an').share(recipe);
+      final id = CommunityPost.idFor('an', 'r1');
+      await repo('binh').setLiked(id, true);
+      await repo('chi').setLiked(id, true);
+      await repo('binh').setLiked(id, true);
+      var data = (await db.collection('communityPosts').doc(id).get()).data()!;
+      expect(data['likedBy'], ['binh', 'chi']);
+      await repo('binh').setLiked(id, false);
+      data = (await db.collection('communityPosts').doc(id).get()).data()!;
+      expect(data['likedBy'], ['chi']);
+    });
+
+    test('bài của quản trị viên mang cờ byAdmin; người thường thì không', () async {
+      await repo('an').share(recipe);
+      expect((await db.collection('communityPosts').doc('an_r1').get()).data()!['byAdmin'], isFalse);
+      await db.collection('users').doc('boss').set({'name': 'Quản trị'});
+      await adminRepo('boss').share(recipe.copyWith(ownerId: 'boss'));
+      expect((await db.collection('communityPosts').doc('boss_r1').get()).data()!['byAdmin'], isTrue);
+    });
+
+    test('ghim nổi bật và thông báo chung', () async {
+      await repo('an').share(recipe);
+      final admin = adminRepo('boss');
+      await admin.setFeatured('an_r1', true);
+      final feed = await repo('binh').watchFeed().first;
+      expect(feed.single.featured, isTrue);
+
+      final texts = <String>[];
+      final sub = repo('binh').watchAnnouncement().listen(texts.add);
+      await pumpEventQueue();
+      await admin.setAnnouncement('  Tuần này: món chay  ');
+      await pumpEventQueue();
+      await admin.setAnnouncement('');
+      await pumpEventQueue();
+      await sub.cancel();
+      expect(texts, ['', 'Tuần này: món chay', '']);
+    });
+  });
 }
