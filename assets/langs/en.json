@@ -316,7 +316,15 @@
     "video_replace": "Replace video",
     "video_remove": "Remove video",
     "video_remove_confirm": "Remove this recipe's cooking video?",
-    "video_removed": "Video removed"
+    "video_removed": "Video removed",
+    "starter_title": "Add sample recipes",
+    "starter_desc": "Add {} familiar Vietnamese dishes with ingredients, prices, calories and step timers. Dishes with the same name as yours are skipped.",
+    "starter_add": "Add",
+    "starter_none": "You already have all the sample recipes.",
+    "starter_done": {
+      "one": "Added {} sample recipe",
+      "other": "Added {} sample recipes"
+    }
   },
   "account": {
     "title": "Account",
@@ -355,7 +363,8 @@
     "password_failed": "Couldn't send, please try again.",
     "section_about": "About",
     "about_desc": "Recipes, weekly meal plans and shopping for your kitchen.",
-    "version": "v{}"
+    "version": "v{}",
+    "about_author": "Developed by Trần Đình Danh – Phenikaa University"
   },
   "common": {
     "save": "Save",

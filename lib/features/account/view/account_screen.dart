@@ -14,7 +14,7 @@ import 'widgets/profile_dialogs.dart';
 import 'widgets/user_avatar.dart';
 
 /// Phiên bản hiển thị ở mục Giới thiệu.
-const appVersion = '1.4.0';
+const appVersion = '1.5.0';
 
 /// Tab Tài khoản (spec 005): hồ sơ (ảnh, tên), số liệu, cài đặt, đổi mật khẩu, quản trị, đăng xuất.
 class AccountScreen extends StatefulWidget {
@@ -223,6 +223,11 @@ class _AccountScreenState extends State<AccountScreen> {
               title: const Text('KitchenLoop'),
               subtitle: Text('account.about_desc'.tr()),
               trailing: Text('account.version'.tr(args: [appVersion]), style: theme.textTheme.bodySmall),
+            ),
+            ListTile(
+              key: const Key('about_author'),
+              leading: const Icon(Icons.school_outlined),
+              title: Text('account.about_author'.tr()),
             ),
           ]),
 

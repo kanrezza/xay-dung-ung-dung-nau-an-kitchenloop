@@ -310,7 +310,15 @@
     "video_replace": "Thay video khác",
     "video_remove": "Xoá video",
     "video_remove_confirm": "Xoá video hướng dẫn của công thức này?",
-    "video_removed": "Đã xoá video"
+    "video_removed": "Đã xoá video",
+    "starter_title": "Thêm công thức mẫu",
+    "starter_desc": "Thêm {} món Việt quen thuộc (cơm rang, bún chả, cá kho, chè…) có sẵn nguyên liệu, giá, kcal và hẹn giờ từng bước. Món trùng tên với món bạn đã có sẽ được bỏ qua.",
+    "starter_add": "Thêm",
+    "starter_none": "Bạn đã có đủ các món mẫu rồi.",
+    "starter_done": {
+      "one": "Đã thêm {} công thức mẫu",
+      "other": "Đã thêm {} công thức mẫu"
+    }
   },
   "account": {
     "title": "Tài khoản",
@@ -349,7 +357,8 @@
     "password_failed": "Không gửi được, hãy thử lại.",
     "section_about": "Giới thiệu",
     "about_desc": "Công thức, thực đơn tuần và đi chợ cho bếp nhà bạn.",
-    "version": "Bản {}"
+    "version": "Bản {}",
+    "about_author": "Phát triển bởi Trần Đình Danh – Đại học Phenikaa"
   },
   "common": {
     "save": "Lưu",

@@ -6,6 +6,7 @@ import '../models/recipe.dart';
 import '../providers/recipe_list_provider.dart';
 import 'recipe_detail_screen.dart';
 import 'recipe_editor_screen.dart';
+import 'widgets/starter_pack_button.dart';
 import 'widgets/recipe_card.dart';
 import 'widgets/tag_filter_bar.dart';
 
@@ -110,6 +111,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('recipes.title'.tr()),
+        actions: const [StarterPackButton()],
       ),
       // Danh sách trống đã có nút "Thêm công thức" ở giữa màn hình; không hiện thêm nút nổi.
       floatingActionButton: _showsEmptyState(provider)
@@ -140,6 +142,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         message: 'recipes.empty'.tr(),
         actionLabel: 'recipes.add'.tr(),
         onAction: _openEditor,
+        extra: const StarterPackButton(asText: true),
       );
     }
     return Column(
@@ -233,7 +236,11 @@ class _MessageView extends StatelessWidget {
     this.onAction,
     this.actionKey = const Key('empty_add_recipe'),
     this.actionIcon = Icons.add,
+    this.extra,
   });
+
+  /// Nút phụ dưới nút chính (ví dụ "Thêm công thức mẫu").
+  final Widget? extra;
 
   final IconData icon;
   final String message;
@@ -261,6 +268,7 @@ class _MessageView extends StatelessWidget {
                 icon: Icon(actionIcon),
                 label: Text(actionLabel!),
               ),
+              if (extra != null) ...[const SizedBox(height: 8), extra!],
             ],
           ],
         ),

@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../data/migration_result.dart';
 import '../data/recipe_repository.dart';
 import '../domain/recipe_filter.dart';
+import '../domain/starter_recipes.dart';
 import '../domain/text_normalizer.dart';
 import '../models/recipe.dart';
 
@@ -147,6 +149,20 @@ class RecipeListProvider extends ChangeNotifier {
   }
 
   Future<void> delete(String id) => _repository.delete(id);
+
+  /// Thêm bộ công thức mẫu; món trùng tên (không phân biệt dấu, hoa thường) với món đã có thì bỏ qua.
+  /// Trả về số món đã thêm.
+  Future<int> addStarterRecipes({String Function()? newId}) async {
+    final have = {for (final r in _recipes) normalizeForSearch(r.title)};
+    final ids = newId ?? () => const Uuid().v4();
+    var added = 0;
+    for (final draft in buildStarterRecipes(ids)) {
+      if (!have.add(normalizeForSearch(draft.title))) continue;
+      await _repository.create(draft);
+      added++;
+    }
+    return added;
+  }
 
   /// Chuyển dữ liệu cũ nếu cần, chỉ chạy một lần cho mỗi lần đăng nhập. Giao
   /// diện gọi hàm này thay vì gọi service trực tiếp. Lỗi (ví dụ mất mạng) được
