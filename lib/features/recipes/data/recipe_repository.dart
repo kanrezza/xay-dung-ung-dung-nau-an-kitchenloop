@@ -8,6 +8,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../models/recipe.dart';
 import 'firestore_codec.dart';
 import 'recipe_exceptions.dart';
+import 'video_repository.dart';
 import 'stream_utils.dart';
 
 export 'recipe_exceptions.dart';
@@ -180,6 +181,8 @@ class FirestoreRecipeRepository implements RecipeRepository {
   @override
   Future<void> delete(String id) async {
     _requireUid();
+    // Xoá mẩu video (nếu có) trước, rồi mới xoá công thức (spec 006).
+    await FirestoreVideoRepository.deleteChunksOf(_firestore, id).timeout(offlineGrace * 5, onTimeout: () {});
     await settleWrite(_col.doc(id).delete(), offlineGrace);
   }
 

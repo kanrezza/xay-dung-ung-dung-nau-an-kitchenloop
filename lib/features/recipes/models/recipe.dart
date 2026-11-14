@@ -54,6 +54,40 @@ class RecipeLegacy {
       };
 }
 
+/// Video hướng dẫn nấu của công thức (spec 006). Nội dung nằm ở các mẩu
+/// `recipes/{id}/videoChunks/{id}_NN`; ở đây chỉ là thông tin để tải và ghép lại.
+class RecipeVideo {
+  const RecipeVideo({required this.id, required this.chunkCount, required this.sizeBytes, this.durationMs, this.mime = 'video/mp4'});
+
+  final String id;
+  final int chunkCount;
+  final int sizeBytes;
+  final int? durationMs;
+  final String mime;
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'chunkCount': chunkCount,
+        'sizeBytes': sizeBytes,
+        'durationMs': durationMs,
+        'mime': mime,
+      };
+
+  /// `null` nếu dữ liệu thiếu hoặc sai kiểu (coi như chưa có video).
+  static RecipeVideo? fromMap(Object? raw) {
+    if (raw is! Map) return null;
+    final id = raw['id'], count = raw['chunkCount'], size = raw['sizeBytes'], duration = raw['durationMs'];
+    if (id is! String || id.isEmpty || count is! int || count < 1 || size is! int || size < 1) return null;
+    return RecipeVideo(
+      id: id,
+      chunkCount: count,
+      sizeBytes: size,
+      durationMs: duration is int ? duration : null,
+      mime: raw['mime'] is String ? raw['mime'] as String : 'video/mp4',
+    );
+  }
+}
+
 /// Một công thức của một người dùng (riêng tư theo tài khoản).
 class Recipe {
   Recipe({
@@ -71,6 +105,7 @@ class Recipe {
     this.legacy,
     this.schemaVersion = currentSchemaVersion,
     this.isSyncing = false,
+    this.video,
   });
 
   static const int currentSchemaVersion = 1;
@@ -105,6 +140,10 @@ class Recipe {
   final RecipeLegacy? legacy;
   final int schemaVersion;
 
+  /// Video hướng dẫn (spec 006). KHÔNG nằm trong [toMap]: chỉ VideoRepository ghi trường này,
+  /// để việc sửa công thức không bao giờ ghi đè video.
+  final RecipeVideo? video;
+
   /// Có thay đổi chưa được máy chủ xác nhận (đang chờ đồng bộ, thường do offline).
   /// Chỉ để hiển thị: lấy từ siêu dữ liệu của Firestore, KHÔNG lưu vào dữ liệu.
   final bool isSyncing;
@@ -130,6 +169,7 @@ class Recipe {
       legacy: legacyRaw is Map ? RecipeLegacy.fromMap(Map<String, dynamic>.from(legacyRaw)) : null,
       schemaVersion: (map['schemaVersion'] as num?)?.toInt() ?? currentSchemaVersion,
       isSyncing: isSyncing,
+      video: RecipeVideo.fromMap(map['video']),
     );
   }
 
@@ -165,6 +205,7 @@ class Recipe {
     Object? legacy = _unset,
     int? schemaVersion,
     bool? isSyncing,
+    Object? video = _unset,
   }) {
     return Recipe(
       id: id ?? this.id,
@@ -181,6 +222,7 @@ class Recipe {
       legacy: identical(legacy, _unset) ? this.legacy : legacy as RecipeLegacy?,
       schemaVersion: schemaVersion ?? this.schemaVersion,
       isSyncing: isSyncing ?? this.isSyncing,
+      video: identical(video, _unset) ? this.video : video as RecipeVideo?,
     );
   }
 

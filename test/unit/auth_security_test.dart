@@ -53,7 +53,12 @@ void main() {
       final rules = read('firestore.rules');
       final recipes = rules.substring(rules.indexOf('match /recipes/{recipeId}'), rules.indexOf('THỰC ĐƠN TUẦN, ĐI CHỢ'));
       expect(recipes, isNot(contains('isAdmin')));
-      expect('notLocked()'.allMatches(recipes).length, 5, reason: 'get, list, create, update, delete');
+      final own = recipes.substring(0, recipes.indexOf('match /videoChunks'));
+      expect('notLocked()'.allMatches(own).length, 5, reason: 'get, list, create, update, delete');
+      // Mẩu video (spec 006): chỉ chủ công thức đọc/ghi, tài khoản bị khoá không đọc/ghi được.
+      final chunks = recipes.substring(recipes.indexOf('match /videoChunks'));
+      expect('notLocked()'.allMatches(chunks).length, 2, reason: 'get, create/update');
+      expect(chunks, contains('resource.data.ownerId == request.auth.uid'));
     });
 
     test('firestore.rules: collection của bản cũ không ghi được', () {

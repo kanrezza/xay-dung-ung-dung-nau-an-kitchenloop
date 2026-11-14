@@ -3,7 +3,7 @@
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import {
   doc, setDoc, updateDoc, getDoc, getDocs, deleteDoc, collection, query, where,
-  arrayUnion, arrayRemove, writeBatch, serverTimestamp, increment, Timestamp,
+  arrayUnion, arrayRemove, writeBatch, serverTimestamp, increment, Timestamp, Bytes,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import fs from 'fs';
@@ -99,6 +99,33 @@ await t('alice ghi được recipeMigratedAt của mình', assertSucceeds(update
 await t('alice không ghi recipeMigratedAt của bob', assertFails(updateDoc(doc(alice, 'users/bob'), { recipeMigratedAt: new Date() })));
 await t('alice đọc được foods của mình theo authorId', assertSucceeds(getDocs(query(collection(alice, 'foods'), where('authorId', '==', 'alice')))));
 await t('alice không đọc được món riêng tư của bob', assertFails(getDoc(doc(alice, 'foods/fpriv'))));
+
+console.log('\n== video hướng dẫn (spec 006): mẩu trong Firestore ==');
+const chunk = (owner, videoId, index, size = 1000, over = {}) => ({ ownerId: owner, videoId, index, data: Bytes.fromUint8Array(new Uint8Array(size)), ...over });
+const pad = (i) => String(i).padStart(2, '0');
+await t('chủ công thức ghi mẩu video', assertSucceeds(setDoc(doc(alice, `recipes/ra/videoChunks/vid001_${pad(0)}`), chunk('alice', 'vid001', 0, 750000))));
+await t('chủ công thức đọc mẩu video', assertSucceeds(getDoc(doc(alice, 'recipes/ra/videoChunks/vid001_00'))));
+await t('bob không đọc được mẩu video của alice', assertFails(getDoc(doc(bob, 'recipes/ra/videoChunks/vid001_00'))));
+await t('admin (claim) cũng không đọc được', assertFails(getDoc(doc(env.authenticatedContext('vidadmin', { admin: true }).firestore(), 'recipes/ra/videoChunks/vid001_00'))));
+await t('bob không ghi mẩu vào công thức của alice', assertFails(setDoc(doc(bob, 'recipes/ra/videoChunks/vid002_00'), chunk('bob', 'vid002', 0))));
+await t('mẩu quá 750 000 byte bị từ chối', assertFails(setDoc(doc(alice, 'recipes/ra/videoChunks/vid001_01'), chunk('alice', 'vid001', 1, 750001))));
+await t('mẩu không phải bytes bị từ chối', assertFails(setDoc(doc(alice, 'recipes/ra/videoChunks/vid001_01'), chunk('alice', 'vid001', 1, 10, { data: 'abc' }))));
+await t('chỉ số mẩu ≥ 28 bị từ chối', assertFails(setDoc(doc(alice, 'recipes/ra/videoChunks/vid001_28'), chunk('alice', 'vid001', 28))));
+await t('tên mẩu không khớp videoId bị từ chối', assertFails(setDoc(doc(alice, 'recipes/ra/videoChunks/khac_00'), chunk('alice', 'vid001', 0))));
+await t('trường lạ trong mẩu bị từ chối', assertFails(setDoc(doc(alice, 'recipes/ra/videoChunks/vid001_02'), chunk('alice', 'vid001', 2, 10, { note: 'x' }))));
+await t('đặt thông tin video trên công thức', assertSucceeds(updateDoc(doc(alice, 'recipes/ra'), { video: { id: 'vid001', chunkCount: 1, sizeBytes: 750000, durationMs: 2333, mime: 'video/mp4' } })));
+await t('chunkCount > 28 bị từ chối', assertFails(updateDoc(doc(alice, 'recipes/ra'), { video: { id: 'vid001', chunkCount: 29, sizeBytes: 1 } })));
+await t('video quá 21 MB bị từ chối', assertFails(updateDoc(doc(alice, 'recipes/ra'), { video: { id: 'vid001', chunkCount: 28, sizeBytes: 21000001 } })));
+await t('xoá thông tin video (null)', assertSucceeds(updateDoc(doc(alice, 'recipes/ra'), { video: null })));
+await t('bob không xoá mẩu của alice', assertFails(deleteDoc(doc(bob, 'recipes/ra/videoChunks/vid001_00'))));
+await t('alice xoá mẩu của mình', assertSucceeds(deleteDoc(doc(alice, 'recipes/ra/videoChunks/vid001_00'))));
+await env.withSecurityRulesDisabled(async (ctx) => {
+  const db = ctx.firestore();
+  await setDoc(doc(db, 'users/vlock'), { role: 'blogger', isLocked: true });
+  await setDoc(doc(db, 'recipes/rvl'), recipe('vlock'));
+  await setDoc(doc(db, 'recipes/rvl/videoChunks/v1_00'), chunk('vlock', 'v1', 0));
+});
+await t('tài khoản bị khoá không đọc mẩu video', assertFails(getDoc(doc(env.authenticatedContext('vlock').firestore(), 'recipes/rvl/videoChunks/v1_00'))));
 
 console.log('\n== chuyển dữ liệu cũ: đúng dạng mà LegacyMigrationService ghi ==');
 const migrated = (ownerId, over = {}) => ({

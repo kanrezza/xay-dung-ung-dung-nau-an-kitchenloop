@@ -109,6 +109,15 @@ service cloud.firestore {
         && d.get('note', '').size() <= 2000;
     }
 
+    // Thông tin video hướng dẫn trên công thức (spec 006): null hoặc đúng dạng, tối đa 28 mẩu.
+    function validVideo(v) {
+      return v == null
+        || (v is map
+          && v.id is string && v.id.matches('[A-Za-z0-9]{6,40}')
+          && v.chunkCount is int && v.chunkCount >= 1 && v.chunkCount <= 28
+          && v.sizeBytes is int && v.sizeBytes >= 1 && v.sizeBytes <= 21000000);
+    }
+
     match /recipes/{recipeId} {
       // resource == null: đọc document chưa tồn tại trả về "không tồn tại"
       // thay vì lỗi quyền.
@@ -127,10 +136,29 @@ service cloud.firestore {
       allow update: if signedIn() && notLocked()
         && resource.data.ownerId == request.auth.uid
         && request.resource.data.ownerId == resource.data.ownerId
-        && validRecipe(request.resource.data);
+        && validRecipe(request.resource.data)
+        && validVideo(request.resource.data.get('video', null));
 
       allow delete: if signedIn() && notLocked()
         && resource.data.ownerId == request.auth.uid;
+
+      // Mẩu video hướng dẫn (spec 006): Cloud Storage bị khoá nên video được cắt thành mẩu
+      // ≤ 750 000 byte lưu ở đây. Chỉ chủ công thức đọc/ghi; mẩu mang ownerId để vẫn xoá được
+      // khi công thức đã bị xoá.
+      match /videoChunks/{chunkId} {
+        allow get: if signedIn() && notLocked()
+          && (resource == null || resource.data.ownerId == request.auth.uid);
+        allow create, update: if signedIn() && notLocked()
+          && get(/databases/$(database)/documents/recipes/$(recipeId)).data.ownerId == request.auth.uid
+          && request.resource.data.keys().hasOnly(['ownerId', 'videoId', 'index', 'data'])
+          && request.resource.data.ownerId == request.auth.uid
+          && request.resource.data.data is bytes
+          && request.resource.data.data.size() <= 750000
+          && request.resource.data.index is int
+          && request.resource.data.index >= 0 && request.resource.data.index < 28
+          && chunkId.matches(request.resource.data.videoId + '_[0-9]{2}');
+        allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+      }
     }
 
     // ===================== THỰC ĐƠN TUẦN, ĐI CHỢ (spec 003) =====================
