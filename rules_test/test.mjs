@@ -3,7 +3,7 @@
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import {
   doc, setDoc, updateDoc, getDoc, getDocs, deleteDoc, collection, query, where,
-  arrayUnion, arrayRemove, writeBatch,
+  arrayUnion, arrayRemove, writeBatch, serverTimestamp, increment, Timestamp,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import fs from 'fs';
@@ -218,6 +218,97 @@ await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firest
 const locked = env.authenticatedContext('lock').firestore();
 await t('tài khoản bị khoá không ghi thực đơn', assertFails(setDoc(doc(locked, 'weekPlans/lock_2026-11-09'), plan('lock'))));
 await t('tài khoản bị khoá không đọc danh sách đi chợ', assertFails(getDoc(doc(locked, 'shoppingLists/lock_2026-11-09'))));
+
+console.log('\n== cộng đồng (spec 004): kiểm duyệt tự động ==');
+const goodPost = (uid, recipeId, over = {}) => ({
+  authorId: uid, authorName: 'Bếp nhà ' + uid, sourceRecipeId: recipeId,
+  title: 'Thịt kho trứng', note: 'Kho lửa nhỏ cho thấm.', baseServings: 4, tags: ['cơm nhà'],
+  ingredients: [{ id: 'a', name: 'thịt ba chỉ', quantity: 500, unit: 'g' }, { id: 'b', name: 'trứng vịt', quantity: 6, unit: 'quả' }],
+  steps: [{ id: 's1', order: 1, text: 'Luộc trứng 10 phút rồi bóc vỏ.' }, { id: 's2', order: 2, text: 'Kho thịt với nước dừa 45 phút.' }],
+  status: 'visible', reportCount: 0, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), ...over,
+});
+// Đăng bài đúng cách: cùng batch đặt users/{uid}.lastPostAt = thời gian máy chủ.
+const publish = (db, uid, recipeId, over = {}) => {
+  const b = writeBatch(db);
+  b.set(doc(db, `users/${uid}`), { lastPostAt: serverTimestamp() }, { merge: true });
+  b.set(doc(db, `communityPosts/${uid}_${recipeId}`), goodPost(uid, recipeId, over));
+  return b.commit();
+};
+const cA = env.authenticatedContext('ca').firestore();
+const cB = env.authenticatedContext('cb').firestore();
+const cC = env.authenticatedContext('cc').firestore();
+const cD = env.authenticatedContext('cd').firestore();
+const cE = env.authenticatedContext('ce').firestore();
+await t('bài hợp lệ được đăng', assertSucceeds(publish(cA, 'ca', 'r1')));
+await t('người khác đọc được bài đang hiện', assertSucceeds(getDoc(doc(cB, 'communityPosts/ca_r1'))));
+await t('liệt kê bài đang hiện', assertSucceeds(getDocs(query(collection(cB, 'communityPosts'), where('status', '==', 'visible')))));
+await t('chưa đăng nhập không đọc được', assertFails(getDoc(doc(anon, 'communityPosts/ca_r1'))));
+await t('chống spam: bài thứ 2 trong vòng 2 phút bị chặn', assertFails(publish(cA, 'ca', 'r2')));
+await t('không đặt lastPostAt thì không đăng được', assertFails(setDoc(doc(cB, 'communityPosts/cb_r9'), goodPost('cb', 'r9'))));
+await t('không tự lùi lastPostAt về quá khứ để lách', assertFails(setDoc(doc(cB, 'users/cb'), { lastPostAt: Timestamp.fromDate(new Date('2020-01-01')) }, { merge: true })));
+const bad = async (name, over, who = 'cb') => {
+  await t('chặn: ' + name, assertFails(publish(env.authenticatedContext(who).firestore(), who, 'x' + Math.random().toString(36).slice(2, 7), over)));
+};
+await bad('tên quá ngắn', { title: 'ab' });
+await bad('tên không có chữ', { title: '12345 !!!' });
+await bad('tên gõ bừa lặp ký tự', { title: 'ngonnnnnn quá' });
+await bad('tên có link', { title: 'Mua ngay tại shop.vn nhé' });
+await bad('link trong ghi chú', { note: 'Xem thêm https://spam.example' });
+await bad('link xuống dòng trong ghi chú', { note: 'Ngon lắm.\nChi tiết: www.quangcao.xyz' });
+await bad('từ cấm trong tên', { title: 'Nhận vay tiền nhanh' });
+await bad('từ cấm viết hoa', { title: 'CASINO uy tín' });
+await bad('từ cấm trong bước nấu', { steps: [{ id: 's1', order: 1, text: 'Liên hệ zalo: 0909 để mua' }, { id: 's2', order: 2, text: 'Kho thịt với nước dừa.' }] });
+await bad('chỉ 1 nguyên liệu', { ingredients: [{ id: 'a', name: 'thịt ba chỉ' }] });
+await bad('chỉ 1 bước', { steps: [{ id: 's1', order: 1, text: 'Luộc trứng 10 phút rồi bóc vỏ.' }] });
+await bad('bước nấu quá ngắn', { steps: [{ id: 's1', order: 1, text: 'nấu' }, { id: 's2', order: 2, text: 'Kho thịt với nước dừa.' }] });
+await bad('nguyên liệu 1 ký tự', { ingredients: [{ id: 'a', name: 'x' }, { id: 'b', name: 'trứng' }] });
+await bad('ghi chú quá dài', { note: 'a b '.repeat(300) });
+await bad('tự đặt trạng thái khác "visible"', { status: 'hidden' });
+await bad('tự đặt số báo cáo', { reportCount: -5 });
+await bad('đăng hộ người khác', { authorId: 'ca' });
+await t('không bị chặn nhầm: "lồng đèn", "đụng", "sexy"? (chỉ "lồng")', assertSucceeds(publish(cC, 'cc', 'r1', { title: 'Bánh trung thu lồng đèn' })));
+await t('bài vào sai id (không khớp sourceRecipeId) bị chặn', assertFails((async () => {
+  const b = writeBatch(cD); b.set(doc(cD, 'users/cd'), { lastPostAt: serverTimestamp() }, { merge: true });
+  b.set(doc(cD, 'communityPosts/cd_khac'), goodPost('cd', 'r1')); await b.commit();
+})()));
+await t('tác giả chia sẻ lại (cập nhật nội dung)', assertSucceeds(updateDoc(doc(cA, 'communityPosts/ca_r1'), { title: 'Thịt kho trứng vịt', updatedAt: serverTimestamp() })));
+await t('tác giả không sửa thành nội dung bẩn', assertFails(updateDoc(doc(cA, 'communityPosts/ca_r1'), { title: 'casino', updatedAt: serverTimestamp() })));
+await t('người khác không sửa bài', assertFails(updateDoc(doc(cB, 'communityPosts/ca_r1'), { title: 'Của tôi', updatedAt: serverTimestamp() })));
+
+console.log('\n== cộng đồng: báo cáo ==');
+const report = (db, uid, postId, reason = 'spam', bump = 1, status) => {
+  const b = writeBatch(db);
+  b.set(doc(db, `communityPosts/${postId}/reports/${uid}`), { reason, createdAt: serverTimestamp() });
+  const upd = { reportCount: increment(bump) };
+  if (status) upd.status = status;
+  b.update(doc(db, `communityPosts/${postId}`), upd);
+  return b.commit();
+};
+await t('tác giả không tự báo cáo bài mình', assertFails(report(cA, 'ca', 'ca_r1')));
+await t('báo cáo không tăng bộ đếm thì bị chặn', assertFails(setDoc(doc(cB, 'communityPosts/ca_r1/reports/cb'), { reason: 'spam', createdAt: serverTimestamp() })));
+await t('tăng bộ đếm 2 đơn vị bị chặn', assertFails(report(cB, 'cb', 'ca_r1', 'spam', 2)));
+await t('lý do lạ bị chặn', assertFails(report(cB, 'cb', 'ca_r1', 'ghét')));
+await t('báo cáo hợp lệ (1/3)', assertSucceeds(report(cB, 'cb', 'ca_r1')));
+await t('mỗi người chỉ báo cáo một lần', assertFails(report(cB, 'cb', 'ca_r1')));
+await t('báo cáo thứ 2 (2/3)', assertSucceeds(report(cC, 'cc', 'ca_r1', 'not_recipe')));
+await t('báo cáo thứ 3 mà không ẩn bài bị chặn', assertFails(report(cD, 'cd', 'ca_r1', 'offensive')));
+await t('báo cáo thứ 3 ẩn bài', assertSucceeds(report(cD, 'cd', 'ca_r1', 'offensive', 1, 'hidden')));
+await t('bài ẩn: người khác không đọc được', assertFails(getDoc(doc(cE, 'communityPosts/ca_r1'))));
+await t('bài ẩn: tác giả vẫn đọc được', assertSucceeds(getDoc(doc(cA, 'communityPosts/ca_r1'))));
+await t('tác giả không tự mở lại bài bị ẩn / xoá báo cáo', assertFails(updateDoc(doc(cA, 'communityPosts/ca_r1'), { reportCount: 0, status: 'visible', updatedAt: serverTimestamp() })));
+await t('người thường không đọc báo cáo', assertFails(getDocs(collection(cE, 'communityPosts/ca_r1/reports'))));
+
+console.log('\n== cộng đồng: quản trị viên ==');
+await t('admin đọc bài ẩn', assertSucceeds(getDoc(doc(boss, 'communityPosts/ca_r1'))));
+await t('admin liệt kê mọi bài (thống kê)', assertSucceeds(getDocs(collection(boss, 'communityPosts'))));
+await t('admin đọc báo cáo', assertSucceeds(getDocs(collection(boss, 'communityPosts/ca_r1/reports'))));
+await t('admin khôi phục bài, đặt lại báo cáo', assertSucceeds(updateDoc(doc(boss, 'communityPosts/ca_r1'), { status: 'visible', reportCount: 0, updatedAt: serverTimestamp() })));
+await t('admin không sửa nội dung bài', assertFails(updateDoc(doc(boss, 'communityPosts/ca_r1'), { title: 'Sửa bởi admin' })));
+await t('admin gỡ bài', assertSucceeds(updateDoc(doc(boss, 'communityPosts/cc_r1'), { status: 'removed', updatedAt: serverTimestamp() })));
+await t('người thường không đổi trạng thái bài', assertFails(updateDoc(doc(cE, 'communityPosts/ca_r1'), { status: 'removed' })));
+await t('tác giả gỡ bài của mình', assertSucceeds(deleteDoc(doc(cA, 'communityPosts/ca_r1'))));
+await t('tài khoản bị khoá không đăng bài', assertFails(publish(locked, 'lock', 'r1')));
+await t('tài khoản bị khoá không đọc cộng đồng', assertFails(getDocs(query(collection(locked, 'communityPosts'), where('status', '==', 'visible')))));
 
 console.log('\n== collection của bản cũ: khoá ghi ==');
 await t('alice không sửa được món cũ của mình', assertFails(updateDoc(doc(alice, 'foods/f1'), { title: 'mới' })));

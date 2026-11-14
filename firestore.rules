@@ -43,13 +43,16 @@ service cloud.firestore {
       allow create: if isOwner(userId)
         && request.resource.data.get('role', 'blogger') == 'blogger'
         && request.resource.data.get('isLocked', false) == false
-        && noPassword();
+        && noPassword()
+        && request.resource.data.get('lastPostAt', request.time) == request.time;
 
       // Chủ tài khoản: role, isLocked chỉ quản trị viên đặt.
       // Quản trị viên: chỉ khoá/mở khoá người KHÁC, không sửa trường nào khác.
       allow update: if (isOwner(userId)
           && !changedKeys().hasAny(['role', 'isLocked', 'lockedAt'])
-          && noPassword())
+          && noPassword()
+          // lastPostAt (chống spam bài cộng đồng) chỉ đặt được bằng thời gian máy chủ.
+          && (!changedKeys().hasAny(['lastPostAt']) || request.resource.data.lastPostAt == request.time))
         || (isAdmin()
           && userId != request.auth.uid
           && changedKeys().hasOnly(['isLocked', 'lockedAt'])
@@ -146,6 +149,119 @@ service cloud.firestore {
         && request.resource.data.extras is list
         && request.resource.data.extras.size() <= 100;
       allow delete: if ownWeekDoc(listId) && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ===================== CỘNG ĐỒNG (spec 004) =====================
+    // Kiểm duyệt TỰ ĐỘNG ở đây (không chỉ ở ứng dụng). Các mẫu regex khớp với
+    // lib/features/community/domain/moderation.dart (có test kiểm tra).
+    function bannedRe() { return '(?s).*(địt|lồn([^g]|$)|cặc|buồi|đéo|vãi l|vcl|fuck|shit|bitch|porn|sex|xxx|18[+]|casino|cá độ|cá cược|lô đề|vay tiền|kiếm tiền online|bitcoin|zalo:|inbox).*'; }
+    function linkRe() { return '(?s).*(https?://|www[.]|[.](com|net|org|vn|io|xyz|info|ly)([/ ]|$)).*'; }
+    function repeatRe() { return '(?s).*(aaaaa|bbbbb|ccccc|ddddd|eeeee|fffff|ggggg|hhhhh|iiiii|jjjjj|kkkkk|lllll|mmmmm|nnnnn|ooooo|ppppp|qqqqq|rrrrr|sssss|ttttt|uuuuu|vvvvv|wwwww|xxxxx|yyyyy|zzzzz|00000|11111|22222|33333|44444|55555|66666|77777|88888|99999).*'; }
+    function lettersRe() { return '(?s).*[a-zA-ZÀ-ỹ].*[a-zA-ZÀ-ỹ].*'; }
+
+    // Một đoạn chữ "sạch": không link, không từ cấm, không ký tự lặp 5 lần.
+    function cleanText(t) {
+      return t is string
+        && !t.lower().matches(linkRe())
+        && !t.lower().matches(bannedRe())
+        && !t.lower().matches(repeatRe());
+    }
+
+    function goodIngredient(i) {
+      return i.name is string && i.name.trim().size() >= 2 && cleanText(i.name);
+    }
+
+    function goodStep(st) {
+      return st.text is string && st.text.trim().size() >= 8 && cleanText(st.text);
+    }
+
+    // Nội dung bài hợp lệ. Rules không có vòng lặp: kiểm tra kỹ 2 nguyên liệu và 2 bước đầu,
+    // phần còn lại do ứng dụng kiểm tra và cộng đồng báo cáo.
+    function validPost(d) {
+      return d.title is string
+        && d.title.trim().size() >= 3 && d.title.size() <= 80
+        && d.title.matches(lettersRe()) && cleanText(d.title)
+        && d.note is string && d.note.size() <= 1000 && cleanText(d.note)
+        && d.authorName is string && d.authorName.size() >= 1 && d.authorName.size() <= 60 && cleanText(d.authorName)
+        && d.baseServings is int && d.baseServings >= 1 && d.baseServings <= 100
+        && d.ingredients is list && d.ingredients.size() >= 2 && d.ingredients.size() <= 50
+        && d.steps is list && d.steps.size() >= 2 && d.steps.size() <= 50
+        && goodIngredient(d.ingredients[0]) && goodIngredient(d.ingredients[1])
+        && goodStep(d.steps[0]) && goodStep(d.steps[1])
+        && d.tags is list && d.tags.size() <= 10;
+    }
+
+    // Chống spam: tối đa 1 bài mới mỗi 2 phút. Lần ghi tạo bài phải đặt users/{uid}.lastPostAt
+    // = request.time trong cùng batch, và lần đăng trước phải cách ít nhất 2 phút.
+    function postRateOk() {
+      let u = /databases/$(database)/documents/users/$(request.auth.uid);
+      return getAfter(u).data.get('lastPostAt', null) == request.time
+        && (!exists(u)
+          || get(u).data.get('lastPostAt', null) == null
+          || get(u).data.lastPostAt < request.time - duration.value(2, 'm'));
+    }
+
+    // Báo cáo: tăng reportCount đúng 1, kèm tạo reports/{uid} trong cùng batch; đủ 3 thì ẩn bài.
+    function validReportBump(postId) {
+      let r = /databases/$(database)/documents/communityPosts/$(postId)/reports/$(request.auth.uid);
+      let n = request.resource.data.reportCount;
+      return signedIn() && notLocked()
+        && resource.data.authorId != request.auth.uid
+        && resource.data.status == 'visible'
+        && changedKeys().hasOnly(['reportCount', 'status'])
+        && n == resource.data.reportCount + 1
+        && !exists(r) && existsAfter(r)
+        && ((n < 3 && request.resource.data.status == resource.data.status)
+          || (n >= 3 && request.resource.data.status == 'hidden'));
+    }
+
+    match /communityPosts/{postId} {
+      // Bài đang hiện: ai đăng nhập (không bị khoá) cũng xem được. Bài ẩn/gỡ: chỉ tác giả và admin.
+      allow get: if signedIn() && notLocked()
+        && (resource == null || resource.data.status == 'visible'
+          || resource.data.authorId == request.auth.uid || isAdmin());
+      allow list: if signedIn() && notLocked()
+        && (resource.data.status == 'visible' || resource.data.authorId == request.auth.uid || isAdmin());
+
+      allow create: if signedIn() && notLocked()
+        && postId == request.auth.uid + '_' + request.resource.data.sourceRecipeId
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.status == 'visible'
+        && request.resource.data.reportCount == 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && validPost(request.resource.data)
+        && postRateOk();
+
+      allow update: if
+        // Tác giả chia sẻ lại (sửa nội dung): không đổi được trạng thái, số báo cáo, chủ bài.
+        (signedIn() && notLocked()
+          && resource.data.authorId == request.auth.uid
+          && !changedKeys().hasAny(['authorId', 'sourceRecipeId', 'status', 'reportCount', 'createdAt'])
+          && request.resource.data.updatedAt == request.time
+          && validPost(request.resource.data))
+        // Quản trị viên duyệt bài: chỉ đổi trạng thái, đặt lại số báo cáo.
+        || (isAdmin()
+          && changedKeys().hasOnly(['status', 'reportCount', 'updatedAt'])
+          && request.resource.data.status in ['visible', 'hidden', 'removed']
+          && request.resource.data.reportCount is int && request.resource.data.reportCount >= 0)
+        // Người khác báo cáo.
+        || validReportBump(postId);
+
+      allow delete: if signedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
+
+      match /reports/{reporterId} {
+        allow create: if signedIn() && notLocked()
+          && reporterId == request.auth.uid
+          && get(/databases/$(database)/documents/communityPosts/$(postId)).data.authorId != request.auth.uid
+          && request.resource.data.keys().hasOnly(['reason', 'createdAt'])
+          && request.resource.data.reason in ['spam', 'offensive', 'not_recipe', 'other']
+          && request.resource.data.createdAt == request.time
+          && getAfter(/databases/$(database)/documents/communityPosts/$(postId)).data.reportCount
+            == get(/databases/$(database)/documents/communityPosts/$(postId)).data.reportCount + 1;
+        allow read: if isAdmin();
+        allow update, delete: if false;
+      }
     }
 
     // ===================== COLLECTION CŨ KHÁC =====================
