@@ -20,7 +20,10 @@ import 'package:btl_ltdd/features/community/data/community_repository.dart';
 import 'package:btl_ltdd/features/community/models/community_post.dart';
 import 'package:btl_ltdd/features/community/providers/community_provider.dart';
 import 'package:btl_ltdd/features/community/view/admin_community_tab.dart';
+import 'package:btl_ltdd/features/account/providers/profile_provider.dart';
+import 'package:btl_ltdd/features/account/providers/theme_mode_provider.dart';
 import 'package:btl_ltdd/features/home/view/app_shell.dart';
+import 'package:btl_ltdd/features/home/view/shell_destination.dart';
 import 'package:btl_ltdd/features/planner/data/planner_repository.dart';
 import 'package:btl_ltdd/features/planner/models/shopping_state.dart';
 import 'package:btl_ltdd/features/planner/models/week_plan.dart';
@@ -38,7 +41,6 @@ import 'package:btl_ltdd/features/recipes/models/recipe_step.dart';
 import 'package:btl_ltdd/features/recipes/providers/cooking_mode_provider.dart';
 import 'package:btl_ltdd/features/recipes/providers/recipe_editor_provider.dart';
 import 'package:btl_ltdd/features/recipes/providers/recipe_list_provider.dart';
-import 'package:btl_ltdd/features/recipes/view/account_menu_screen.dart';
 import 'package:btl_ltdd/features/recipes/view/cooking_mode_screen.dart';
 import 'package:btl_ltdd/features/recipes/view/recipe_detail_screen.dart';
 import 'package:btl_ltdd/features/recipes/view/recipe_editor_screen.dart';
@@ -56,6 +58,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../test/support/cooking_fakes.dart';
 import '../test/support/community_fakes.dart';
 import '../test/support/planner_fakes.dart';
+import '../test/support/profile_fakes.dart';
 
 const _outDir = 'screenshots/out';
 final _shotKey = GlobalKey();
@@ -219,6 +222,8 @@ Future<void> _pump(WidgetTester tester, _Env env, Widget home, {String locale = 
               Provider<CommunityRepository>.value(value: env.community),
               ChangeNotifierProvider(create: (_) => CommunityProvider(repository: env.community, recipes: env.repo)),
               Provider<PlannerRepository>.value(value: env.planner),
+              ChangeNotifierProvider(create: (_) => ProfileProvider(repository: FakeProfileRepository())),
+              ChangeNotifierProvider(create: (_) => ThemeModeProvider()),
               ChangeNotifierProvider(create: (_) => MealPlanProvider(repository: env.planner, now: () => _now)),
               ChangeNotifierProxyProvider<MealPlanProvider, ShoppingProvider>(
                 create: (_) => ShoppingProvider(repository: env.planner),
@@ -296,7 +301,7 @@ void main() {
 
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  Widget list() => RecipeListScreen(loginBuilder: (_) => const Scaffold());
+  Widget list() => const RecipeListScreen();
 
   testWidgets('01 danh sách công thức', (tester) async {
     final env = _Env();
@@ -467,7 +472,8 @@ void main() {
 
   testWidgets('15 tài khoản', (tester) async {
     final env = _Env();
-    await _pump(tester, env, AccountMenuScreen(actions: env.account, loginBuilder: (_) => const Scaffold()));
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initial: ShellDestination.account));
+    await tester.pumpAndSettle();
     await _capture(tester, '15_tai_khoan');
   });
 
@@ -527,7 +533,7 @@ void main() {
     final env = _Env();
     await _seed(env.db);
     seedPlan(env);
-    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initialTab: 2));
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initial: ShellDestination.planner));
     await settleShell(tester);
     await _capture(tester, '20_thuc_don_tuan');
   });
@@ -536,7 +542,7 @@ void main() {
     final env = _Env();
     await _seed(env.db);
     seedPlan(env);
-    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initialTab: 3));
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initial: ShellDestination.shopping));
     await settleShell(tester);
     await _capture(tester, '21_di_cho');
   });
@@ -545,7 +551,7 @@ void main() {
     final env = _Env();
     await _seed(env.db);
     seedPlan(env);
-    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initialTab: 1), brightness: Brightness.dark);
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initial: ShellDestination.recipes), brightness: Brightness.dark);
     await settleShell(tester);
     await _capture(tester, '22_che_do_toi');
   });
@@ -583,7 +589,7 @@ void main() {
     final env = _Env();
     await _seed(env.db);
     seedCommunity(env);
-    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initialTab: 4));
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initial: ShellDestination.community));
     await settleShell(tester);
     await _capture(tester, '23_cong_dong');
   });

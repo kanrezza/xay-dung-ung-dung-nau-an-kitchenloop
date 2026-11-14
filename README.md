@@ -26,6 +26,7 @@ xã hội (cộng đồng, theo dõi, bình luận, khám phá, quản trị), t
 | **Thực đơn tuần** | Xếp món vào bữa sáng/trưa/tối từ thứ 2 tới chủ nhật, chọn số người ăn, chuyển tuần ([spec 003](specs/003-meal-plan-shopping-ui/spec.md)). |
 | **Danh sách đi chợ tự động** | Gộp nguyên liệu của cả tuần theo số người ăn (g/kg, ml/lít được quy đổi, quả/tép làm tròn lên), tick đã mua, thêm món lẻ. |
 | **Giao diện** | 4 tab, lưới công thức có ảnh bìa (ảnh minh hoạ theo loại món khi chưa có ảnh), chế độ sáng/tối theo máy. |
+| **Tài khoản** | Tab riêng: ảnh đại diện (thư viện/máy ảnh), tên hiển thị, số liệu cá nhân, ngôn ngữ, giao diện Theo máy/Sáng/Tối (được nhớ), đổi mật khẩu qua email, quản trị, đăng xuất ([spec 005](specs/005-account-tab/spec.md)). |
 | **Hai ngôn ngữ** | Tiếng Việt (mặc định) và tiếng Anh. |
 | **Cộng đồng** | Chia sẻ công thức; **kiểm duyệt tự động ở Firestore rules** (chặn bài thiếu nội dung, chữ vô nghĩa, link, từ cấm, đăng dồn dập); lưu bài của người khác vào sổ; báo cáo, đủ 3 báo cáo thì bài tự ẩn chờ duyệt ([spec 004](specs/004-community-sharing/spec.md)). Không có follow, bình luận. |
 | **Quản trị tối thiểu** | Tài khoản quản trị: số tài khoản, khoá/mở khoá; thống kê cộng đồng, biểu đồ bài đăng 7 ngày, hàng chờ duyệt (khôi phục/gỡ bài). Không xem được công thức riêng của ai ([spec 002](specs/002-admin-minimal/spec.md), [spec 004](specs/004-community-sharing/spec.md)). |
@@ -51,6 +52,7 @@ lib/
 │   └── view/                     # màn hình và widget
 ├── features/home/                # khung 4 tab, trang chủ, ảnh bìa minh hoạ (spec 003)
 ├── features/planner/             # thực đơn tuần, danh sách đi chợ (spec 003)
+├── features/account/             # tab Tài khoản: hồ sơ, ảnh đại diện, cài đặt (spec 005)
 ├── features/community/           # chia sẻ công thức, kiểm duyệt, báo cáo (spec 004)
 ├── features/admin/               # quản trị tối thiểu (spec 002)
 ├── view/auth/                    # đăng nhập, đăng ký, quên mật khẩu
