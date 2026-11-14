@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  Future<void> pumpImage(WidgetTester tester, RecipeImage image) async {
+  Future<void> pumpImage(WidgetTester tester, Widget image) async {
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: Center(child: image))));
   }
 
@@ -30,6 +30,20 @@ void main() {
     expect(image.width, 120);
     expect(image.height, 80);
     expect(image.fit, BoxFit.cover);
+  });
+
+  testWidgets('giải mã ảnh đúng cỡ hiển thị (× mật độ điểm ảnh), không phải ảnh gốc', (tester) async {
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpImage(tester, const RecipeImage(url: 'https://example.com/a.jpg', width: 64, height: 64));
+    expect(tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage)).memCacheWidth, 192);
+  });
+
+  testWidgets('không có width: dùng bề rộng chỗ chứa để tính cỡ giải mã', (tester) async {
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpImage(tester, const Center(child: SizedBox(width: 150, child: RecipeImage(url: 'https://example.com/a.jpg', height: 80))));
+    expect(tester.widget<CachedNetworkImage>(find.byType(CachedNetworkImage)).memCacheWidth, 300);
   });
 
   testWidgets('trong lúc tải hiện vòng quay thay vì ô trống', (tester) async {

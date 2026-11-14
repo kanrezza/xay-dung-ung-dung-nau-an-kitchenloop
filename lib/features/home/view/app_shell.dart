@@ -25,6 +25,10 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   late int _index;
   late final ValueNotifier<int> _planTab;
+
+  /// Tab đã được mở ít nhất một lần. Tab chưa mở thì chưa dựng (không tải dữ liệu, không vẽ),
+  /// tab đã mở được giữ nguyên trạng thái khi chuyển qua lại.
+  final Set<int> _visited = {};
   int _homeRefresh = 0;
 
   static int _tabOf(ShellDestination d) => switch (d) {
@@ -39,6 +43,7 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     _index = _tabOf(widget.initial);
+    _visited.add(_index);
     _planTab = ValueNotifier(widget.initial == ShellDestination.shopping ? 1 : 0);
   }
 
@@ -51,6 +56,7 @@ class _AppShellState extends State<AppShell> {
   void _select(int index) => setState(() {
         if (index == 0 && _index != 0) _homeRefresh++;
         _index = index;
+        _visited.add(index);
       });
 
   void _open(ShellDestination d) {
@@ -59,28 +65,56 @@ class _AppShellState extends State<AppShell> {
     _select(_tabOf(d));
   }
 
+  Widget _page(int i) => switch (i) {
+        0 => HomeScreen(onOpen: _open, refreshToken: _homeRefresh),
+        1 => const RecipeListScreen(),
+        2 => PlanScreen(subTab: _planTab),
+        3 => const CommunityScreen(),
+        _ => AccountScreen(actions: context.read<AccountActions>(), loginBuilder: widget.loginBuilder),
+      };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _index,
         children: [
-          HomeScreen(onOpen: _open, refreshToken: _homeRefresh),
-          const RecipeListScreen(),
-          PlanScreen(subTab: _planTab),
-          const CommunityScreen(),
-          AccountScreen(actions: context.read<AccountActions>(), loginBuilder: widget.loginBuilder),
+          for (var i = 0; i < 5; i++)
+            _visited.contains(i)
+                // Tab ẩn: tắt hiệu ứng chuyển động (ví dụ vòng quay "đang tải") để khỏi vẽ lại mỗi khung hình.
+                ? TickerMode(enabled: i == _index, child: _page(i))
+                : const SizedBox.shrink(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: _select,
         destinations: [
-          NavigationDestination(key: const Key('nav_home'), icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: 'nav.home'.tr()),
-          NavigationDestination(key: const Key('nav_recipes'), icon: const Icon(Icons.menu_book_outlined), selectedIcon: const Icon(Icons.menu_book), label: 'nav.recipes'.tr()),
-          NavigationDestination(key: const Key('nav_plan'), icon: const Icon(Icons.calendar_month_outlined), selectedIcon: const Icon(Icons.calendar_month), label: 'nav.plan'.tr()),
-          NavigationDestination(key: const Key('nav_community'), icon: const Icon(Icons.public_outlined), selectedIcon: const Icon(Icons.public), label: 'nav.community'.tr()),
-          NavigationDestination(key: const Key('nav_account'), icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person), label: 'nav.account'.tr()),
+          NavigationDestination(
+              key: const Key('nav_home'),
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home),
+              label: 'nav.home'.tr()),
+          NavigationDestination(
+              key: const Key('nav_recipes'),
+              icon: const Icon(Icons.menu_book_outlined),
+              selectedIcon: const Icon(Icons.menu_book),
+              label: 'nav.recipes'.tr()),
+          NavigationDestination(
+              key: const Key('nav_plan'),
+              icon: const Icon(Icons.calendar_month_outlined),
+              selectedIcon: const Icon(Icons.calendar_month),
+              label: 'nav.plan'.tr()),
+          NavigationDestination(
+              key: const Key('nav_community'),
+              icon: const Icon(Icons.public_outlined),
+              selectedIcon: const Icon(Icons.public),
+              label: 'nav.community'.tr()),
+          NavigationDestination(
+              key: const Key('nav_account'),
+              icon: const Icon(Icons.person_outline),
+              selectedIcon: const Icon(Icons.person),
+              label: 'nav.account'.tr()),
         ],
       ),
     );

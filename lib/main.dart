@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:btl_ltdd/features/home/view/app_shell.dart';
 import 'package:btl_ltdd/view/auth/login_screen.dart';
 import 'package:flutter/material.dart';
@@ -50,12 +52,7 @@ void main() async {
 
   // Firebase Auth tự giữ phiên đăng nhập trên máy (an toàn hơn việc tự lưu mật khẩu).
   // Chờ lần phát đầu tiên để biết phiên cũ đã được khôi phục hay chưa.
-  var signedIn = await FirebaseAuth.instance.authStateChanges().first != null;
-  // Tài khoản đã bị quản trị viên khoá thì đăng xuất ngay (spec 002, FR-005).
-  if (signedIn && await AuthService().isCurrentUserLocked()) {
-    await FirebaseAuth.instance.signOut();
-    signedIn = false;
-  }
+  final signedIn = await FirebaseAuth.instance.authStateChanges().first != null;
 
   // 3. MỚI THÊM: Bọc MyApp bằng EasyLocalization
   runApp(
@@ -65,6 +62,22 @@ void main() async {
       fallbackLocale: const Locale('vi'), // Ngôn ngữ mặc định nếu máy người dùng dùng tiếng khác
       child: MyApp(signedIn: signedIn),
     ),
+  );
+  if (signedIn) unawaited(_signOutIfLocked());
+}
+
+/// Điều hướng ở cấp app (dùng khi cần đưa người dùng về màn đăng nhập từ ngoài cây widget).
+final _navigatorKey = GlobalKey<NavigatorState>();
+
+/// Tài khoản đã bị quản trị viên khoá thì đăng xuất (spec 002, FR-005). Chạy NGẦM sau khi app đã
+/// hiện: trước đây app chờ máy chủ trả lời (tới 5 giây khi mạng yếu) rồi mới hiện màn hình đầu.
+/// Dữ liệu vẫn an toàn trong lúc chờ vì Firestore rules chặn tài khoản bị khoá.
+Future<void> _signOutIfLocked() async {
+  if (!await AuthService().isCurrentUserLocked()) return;
+  await FirebaseAuth.instance.signOut();
+  _navigatorKey.currentState?.pushAndRemoveUntil(
+    MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+    (route) => false,
   );
 }
 
@@ -146,6 +159,7 @@ class MyApp extends StatelessWidget {
       ],
       child: Builder(
         builder: (context) => MaterialApp(
+          navigatorKey: _navigatorKey,
           // 4. MỚI THÊM: Cấu hình để MaterialApp nhận diện ngôn ngữ
           localizationsDelegates: context.localizationDelegates,
           supportedLocales: context.supportedLocales,

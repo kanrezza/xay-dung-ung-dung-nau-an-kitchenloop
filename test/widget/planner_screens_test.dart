@@ -2,7 +2,9 @@ import 'package:btl_ltdd/features/community/data/community_repository.dart';
 import 'package:btl_ltdd/features/community/providers/community_provider.dart';
 import 'package:btl_ltdd/features/account/providers/profile_provider.dart';
 import 'package:btl_ltdd/features/account/providers/theme_mode_provider.dart';
+import 'package:btl_ltdd/features/community/view/community_screen.dart';
 import 'package:btl_ltdd/features/home/view/app_shell.dart';
+import 'package:btl_ltdd/features/planner/view/plan_screen.dart';
 import 'package:btl_ltdd/features/home/view/shell_destination.dart';
 import 'package:btl_ltdd/features/home/view/widgets/recipe_cover.dart';
 import 'package:btl_ltdd/features/planner/data/planner_repository.dart';
@@ -163,6 +165,22 @@ void main() {
     await tester.tap(find.byKey(const Key('nav_account')));
     await settle(tester);
     expect(find.byKey(const Key('profile_name')), findsOneWidget);
+  });
+
+  testWidgets('hiệu năng: tab chỉ dựng khi mở lần đầu; tab ẩn tắt hiệu ứng chuyển động', (tester) async {
+    await pumpShell(tester);
+    expect(find.byType(CommunityScreen, skipOffstage: false), findsNothing, reason: 'chưa mở thì chưa tải cộng đồng');
+    expect(find.byType(PlanScreen, skipOffstage: false), findsNothing);
+    await tester.tap(find.byKey(const Key('nav_community')));
+    await settle(tester);
+    expect(find.byType(CommunityScreen), findsOneWidget);
+    await tester.tap(find.byKey(const Key('nav_home')));
+    await settle(tester);
+    // Tab Cộng đồng vẫn giữ (không dựng lại), nhưng không còn chạy hiệu ứng.
+    final community = find.byType(CommunityScreen, skipOffstage: false);
+    expect(community, findsOneWidget);
+    expect(TickerMode.valuesOf(tester.element(community)).enabled, isFalse);
+    expect(TickerMode.valuesOf(tester.element(find.byKey(const Key('home_greeting')))).enabled, isTrue);
   });
 
   testWidgets('lối tắt trang chủ mở đúng tab con (Cần mua → Đi chợ); ảnh đại diện mở Tài khoản', (tester) async {

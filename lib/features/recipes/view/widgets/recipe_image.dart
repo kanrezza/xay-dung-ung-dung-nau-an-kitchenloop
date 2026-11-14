@@ -43,17 +43,26 @@ class RecipeImage extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final Widget content = url.isEmpty
         ? (fallback ?? _box(context, Icon(Icons.restaurant_menu, color: scheme.onSurfaceVariant)))
-        : CachedNetworkImage(
-            imageUrl: url,
-            width: width,
-            height: height,
-            fit: fit,
-            placeholder: (context, _) => _box(
-              context,
-              const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
-            ),
-            errorWidget: (context, _, __) =>
-                fallback ?? _box(context, Icon(Icons.broken_image_outlined, size: 40, color: scheme.onSurfaceVariant)),
+        : LayoutBuilder(
+            // Giải mã ảnh đúng cỡ hiển thị (× mật độ điểm ảnh) thay vì ảnh gốc tới 1600 px:
+            // đỡ tốn bộ nhớ và đỡ giật khi cuộn danh sách nhiều ảnh.
+            builder: (context, constraints) {
+              final dpr = MediaQuery.devicePixelRatioOf(context);
+              final w = width ?? (constraints.hasBoundedWidth ? constraints.maxWidth : null);
+              return CachedNetworkImage(
+                imageUrl: url,
+                width: width,
+                height: height,
+                fit: fit,
+                memCacheWidth: w == null || !w.isFinite ? null : (w * dpr).round(),
+                placeholder: (context, _) => _box(
+                  context,
+                  const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
+                ),
+                errorWidget: (context, _, __) =>
+                    fallback ?? _box(context, Icon(Icons.broken_image_outlined, size: 40, color: scheme.onSurfaceVariant)),
+              );
+            },
           );
     return ClipRRect(borderRadius: BorderRadius.circular(borderRadius), child: content);
   }
