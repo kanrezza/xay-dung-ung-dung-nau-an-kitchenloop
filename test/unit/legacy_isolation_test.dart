@@ -132,10 +132,17 @@ void main() {
     expect(dead, isEmpty, reason: 'file không còn được dùng: $dead');
   });
 
-  test('pubspec không còn thư viện chỉ mã cũ dùng (video_player, fl_chart)', () {
+  test('pubspec không còn thư viện chỉ mã cũ dùng (fl_chart); video_player chỉ dùng cho video hướng dẫn (spec 006)', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    expect(pubspec, isNot(contains('video_player')));
     expect(pubspec, isNot(contains('fl_chart')));
+    // video_player trở lại vì spec 006, nhưng chỉ trình phát video công thức được dùng nó.
+    final users = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart') && f.readAsStringSync().contains('package:video_player/'))
+        .map((f) => f.path.replaceAll(r'\\', '/'))
+        .toList();
+    expect(users, ['lib/features/recipes/view/widgets/recipe_video_player.dart']);
   });
 
   test('sau đăng nhập và sau đăng ký đều vào khung chính (AppShell, spec 003)', () {

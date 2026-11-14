@@ -29,6 +29,8 @@ import 'features/recipes/data/screen_awake.dart';
 import 'features/recipes/data/timer_notification_service.dart';
 import 'features/recipes/data/timer_notifier.dart';
 import 'features/recipes/data/recipe_repository.dart';
+import 'features/recipes/data/video_compressor.dart';
+import 'features/recipes/data/video_repository.dart';
 import 'features/recipes/providers/recipe_list_provider.dart';
 import 'providers/user_provider.dart';
 
@@ -124,6 +126,11 @@ class MyApp extends StatelessWidget {
           create: (ctx) => ShoppingProvider(repository: ctx.read<PlannerRepository>()),
           update: (_, plan, shopping) => shopping!..attachWeek(plan.weekStart),
         ),
+        // Video hướng dẫn (spec 006): nén rồi cắt mẩu lưu trong Firestore.
+        Provider<VideoRepository>(
+          create: (_) => FirestoreVideoRepository(firestore: FirebaseFirestore.instance, auth: FirebaseAuth.instance),
+        ),
+        Provider<VideoCompressor>(create: (_) => NativeVideoCompressor()),
         // Cộng đồng (spec 004): chia sẻ công thức, kiểm duyệt tự động ở firestore.rules.
         Provider<CommunityRepository>(
           create: (_) => FirestoreCommunityRepository(firestore: FirebaseFirestore.instance, auth: FirebaseAuth.instance),

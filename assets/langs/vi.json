@@ -294,7 +294,23 @@
     "info_servings": {
       "other": "{} người"
     },
-    "added_to_plan": "Đã thêm vào {}, bữa {}"
+    "added_to_plan": "Đã thêm vào {}, bữa {}",
+    "video_title": "Video hướng dẫn",
+    "video_add": "Thêm video hướng dẫn",
+    "video_gallery": "Chọn video từ thư viện",
+    "video_camera": "Quay video",
+    "video_compressing": "Đang nén video…",
+    "video_uploading": "Đang tải lên {} / {} phần",
+    "video_loading": "Đang tải video {} / {} phần",
+    "video_added": "Đã thêm video hướng dẫn",
+    "video_too_large": "Video quá lớn (tối đa {} MB sau khi nén). Hãy chọn đoạn ngắn hơn.",
+    "video_offline": "Cần kết nối mạng ổn định để tải video lên.",
+    "video_failed": "Không xử lý được video, hãy thử lại.",
+    "video_load_failed": "Không tải được video. Hãy kiểm tra kết nối mạng.",
+    "video_replace": "Thay video khác",
+    "video_remove": "Xoá video",
+    "video_remove_confirm": "Xoá video hướng dẫn của công thức này?",
+    "video_removed": "Đã xoá video"
   },
   "account": {
     "title": "Tài khoản",

@@ -15,6 +15,7 @@ import 'display_helpers.dart';
 import 'recipe_editor_screen.dart';
 import 'widgets/detail_header.dart';
 import 'widgets/recipe_sections.dart';
+import 'widgets/recipe_video_section.dart';
 import 'widgets/servings_stepper.dart';
 
 /// Xem một công thức: ảnh, tên, ghi chú, nguyên liệu, các bước, nội dung gốc.
@@ -237,6 +238,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   label: Text('community.share'.tr()),
                 ),
                 const SizedBox(height: 20),
+                RecipeVideoSection(recipe: recipe),
+                const SizedBox(height: 24),
                 Text('recipes.ingredients'.tr(), style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
                 IngredientsList(recipe: recipe, languageCode: lang, servings: servings),

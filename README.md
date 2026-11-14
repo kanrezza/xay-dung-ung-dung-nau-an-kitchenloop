@@ -29,6 +29,7 @@ xã hội (cộng đồng, theo dõi, bình luận, khám phá, quản trị), t
 | **Tài khoản** | Tab riêng: ảnh đại diện (thư viện/máy ảnh), tên hiển thị, số liệu cá nhân, ngôn ngữ, giao diện Theo máy/Sáng/Tối (được nhớ), đổi mật khẩu qua email, quản trị, đăng xuất ([spec 005](specs/005-account-tab/spec.md)). |
 | **Hai ngôn ngữ** | Tiếng Việt (mặc định) và tiếng Anh. |
 | **Cộng đồng** | Chia sẻ công thức; **kiểm duyệt tự động ở Firestore rules** (chặn bài thiếu nội dung, chữ vô nghĩa, link, từ cấm, đăng dồn dập); lưu bài của người khác vào sổ; báo cáo, đủ 3 báo cáo thì bài tự ẩn chờ duyệt ([spec 004](specs/004-community-sharing/spec.md)). Không có follow, bình luận. |
+| **Video hướng dẫn** | Mỗi công thức có một video nấu (chọn từ thư viện hoặc quay, tối đa 3 phút); video được nén rồi cắt thành các mẩu ≤ 750 KB lưu trong Firestore (không cần Cloud Storage trả phí); trình phát có tua, video đã xem được lưu trên máy để xem lại khi offline ([spec 006](specs/006-recipe-video/spec.md)). |
 | **Quản trị tối thiểu** | Tài khoản quản trị: số tài khoản, khoá/mở khoá; thống kê cộng đồng, biểu đồ bài đăng 7 ngày, hàng chờ duyệt (khôi phục/gỡ bài). Không xem được công thức riêng của ai ([spec 002](specs/002-admin-minimal/spec.md), [spec 004](specs/004-community-sharing/spec.md)). |
 
 ## Công nghệ
@@ -36,7 +37,8 @@ xã hội (cộng đồng, theo dõi, bình luận, khám phá, quản trị), t
 - **Flutter** (Dart ≥ 3.2), Android và iOS là mục tiêu chính
 - **Firebase**: Authentication, Cloud Firestore (bộ nhớ đệm bền để chạy offline), Storage
 - `provider` (quản lý trạng thái), `easy_localization` (đa ngôn ngữ), `wakelock_plus` (giữ màn hình sáng),
-  `flutter_local_notifications` (báo hết giờ), `cached_network_image` (ảnh có cache)
+  `flutter_local_notifications` (báo hết giờ), `cached_network_image` (ảnh có cache),
+  `video_player` + `video_compress` (video hướng dẫn)
 - Kiểm thử: `flutter_test`, `fake_cloud_firestore`, `firebase_auth_mocks`, Firebase Emulator cho rules
 
 ## Cấu trúc mã

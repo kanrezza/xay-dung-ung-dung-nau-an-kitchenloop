@@ -300,7 +300,23 @@
       "one": "{} serving",
       "other": "{} servings"
     },
-    "added_to_plan": "Added to {}, {}"
+    "added_to_plan": "Added to {}, {}",
+    "video_title": "Cooking video",
+    "video_add": "Add a cooking video",
+    "video_gallery": "Choose from library",
+    "video_camera": "Record a video",
+    "video_compressing": "Compressing video…",
+    "video_uploading": "Uploading part {} of {}",
+    "video_loading": "Loading video part {} of {}",
+    "video_added": "Cooking video added",
+    "video_too_large": "Video is too large (max {} MB after compression). Pick a shorter clip.",
+    "video_offline": "A stable connection is needed to upload the video.",
+    "video_failed": "Couldn't process the video, please try again.",
+    "video_load_failed": "Couldn't load the video. Check your connection.",
+    "video_replace": "Replace video",
+    "video_remove": "Remove video",
+    "video_remove_confirm": "Remove this recipe's cooking video?",
+    "video_removed": "Video removed"
   },
   "account": {
     "title": "Account",
