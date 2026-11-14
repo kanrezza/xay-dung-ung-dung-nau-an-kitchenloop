@@ -79,7 +79,7 @@ void main() {
   });
 
   // Constitution IV cho mọi feature khác ngoài recipes (admin: spec 002; home, planner: spec 003).
-  for (final feature in ['admin', 'home', 'planner']) {
+  for (final feature in ['admin', 'community', 'home', 'planner']) {
     test('$feature: chỉ thư mục data/ được import Firebase (Constitution IV)', () {
       final files = Directory('lib/features/$feature')
           .listSync(recursive: true)

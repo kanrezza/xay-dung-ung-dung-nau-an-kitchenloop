@@ -10,6 +10,8 @@ import 'package:easy_localization/easy_localization.dart'; // 1. MỚI THÊM: Im
 
 import 'app_theme.dart';
 import 'features/admin/data/admin_repository.dart';
+import 'features/community/data/community_repository.dart';
+import 'features/community/providers/community_provider.dart';
 import 'features/planner/data/planner_repository.dart';
 import 'features/planner/providers/meal_plan_provider.dart';
 import 'features/planner/providers/shopping_provider.dart';
@@ -109,6 +111,13 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProxyProvider<MealPlanProvider, ShoppingProvider>(
           create: (ctx) => ShoppingProvider(repository: ctx.read<PlannerRepository>()),
           update: (_, plan, shopping) => shopping!..attachWeek(plan.weekStart),
+        ),
+        // Cộng đồng (spec 004): chia sẻ công thức, kiểm duyệt tự động ở firestore.rules.
+        Provider<CommunityRepository>(
+          create: (_) => FirestoreCommunityRepository(firestore: FirebaseFirestore.instance, auth: FirebaseAuth.instance),
+        ),
+        ChangeNotifierProvider(
+          create: (ctx) => CommunityProvider(repository: ctx.read<CommunityRepository>(), recipes: ctx.read<RecipeRepository>()),
         ),
         // Chế độ nấu: phiên nấu dở (cục bộ), báo hết giờ ở nền, giữ màn hình sáng.
         Provider<CookingSessionStore>(

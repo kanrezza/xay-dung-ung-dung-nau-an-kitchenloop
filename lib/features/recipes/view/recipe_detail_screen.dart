@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../community/view/share_flow.dart';
 import '../../home/view/widgets/recipe_cover.dart';
 import '../../planner/providers/meal_plan_provider.dart';
 import '../../planner/view/meal_plan_screen.dart' show showMealPlanError;
@@ -228,7 +229,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                   label: Text('recipes.add_to_plan'.tr()),
                   style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 4),
+                TextButton.icon(
+                  key: const Key('share_recipe'),
+                  onPressed: () => shareRecipe(context, recipe),
+                  icon: const Icon(Icons.public),
+                  label: Text('community.share'.tr()),
+                ),
+                const SizedBox(height: 20),
                 Text('recipes.ingredients'.tr(), style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
                 IngredientsList(recipe: recipe, languageCode: lang, servings: servings),

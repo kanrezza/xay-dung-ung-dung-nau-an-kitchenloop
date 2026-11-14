@@ -1,3 +1,5 @@
+import 'package:btl_ltdd/features/community/data/community_repository.dart';
+import 'package:btl_ltdd/features/community/providers/community_provider.dart';
 import 'package:btl_ltdd/features/home/view/app_shell.dart';
 import 'package:btl_ltdd/features/home/view/widgets/recipe_cover.dart';
 import 'package:btl_ltdd/features/planner/data/planner_repository.dart';
@@ -20,6 +22,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../support/cooking_fakes.dart';
+import '../support/community_fakes.dart';
 import '../support/planner_fakes.dart';
 
 Map<String, dynamic> _ing(String id, String name, double? q, String? unit) =>
@@ -85,6 +88,8 @@ void main() {
                   create: (_) => ShoppingProvider(repository: planner),
                   update: (_, plan, shop) => shop!..attachWeek(plan.weekStart),
                 ),
+                Provider<CommunityRepository>.value(value: FakeCommunityRepository()),
+                ChangeNotifierProvider(create: (ctx) => CommunityProvider(repository: ctx.read<CommunityRepository>(), recipes: repo)),
                 Provider<CookingSessionStore>.value(value: CookingSessionStore(uidGetter: () => 'alice')),
                 Provider<TimerNotifier>.value(value: FakeTimerNotifier()),
                 Provider<ScreenAwake>.value(value: FakeScreenAwake()),
