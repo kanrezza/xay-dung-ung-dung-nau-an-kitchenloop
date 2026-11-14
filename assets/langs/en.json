@@ -64,7 +64,31 @@
     "issue_tooFewSteps": "At least 2 steps are needed.",
     "issue_tooManySteps": "At most 50 steps.",
     "issue_stepTooShort": "Each step needs a clearer description (at least 8 characters).",
-    "issue_tooManyTags": "At most 10 tags."
+    "issue_tooManyTags": "At most 10 tags.",
+    "like": "Like",
+    "unlike": "Unlike",
+    "likes_n": {
+      "one": "{} like",
+      "other": "{} likes"
+    },
+    "like_failed": "Couldn't like this post. Check your connection.",
+    "featured_badge": "Featured",
+    "admin_badge": "Admin",
+    "announcement": "Announcement",
+    "announcement_hide": "Hide announcement",
+    "sort_newest": "Newest",
+    "sort_popular": "Most liked",
+    "featured": "Featured",
+    "admin_tools": "Admin tools",
+    "feature": "Feature",
+    "unfeature": "Unfeature",
+    "featured_done": "Post featured",
+    "unfeatured_done": "Post unfeatured",
+    "admin_hide": "Hide",
+    "admin_hidden": "Post hidden (moved to review queue)",
+    "admin_restored": "Post restored",
+    "admin_remove_confirm": "Remove this post from the community?",
+    "admin_removed": "Post removed"
   },
   "meal_plans": "Meals",
   "time": "Time",
@@ -364,7 +388,8 @@
     "section_about": "About",
     "about_desc": "Recipes, weekly meal plans and shopping for your kitchen.",
     "version": "v{}",
-    "about_author": "Developed by Trần Đình Danh – Phenikaa University"
+    "about_author": "Developed by Trần Đình Danh – Phenikaa University",
+    "admin_badge": "Administrator"
   },
   "common": {
     "save": "Save",
@@ -408,7 +433,38 @@
     "c_restore": "Restore",
     "c_remove": "Remove",
     "c_note": "Automatic moderation in Firestore rules blocks empty posts, gibberish, links, banned words and flooding; posts with 3 reports are hidden and land in this queue.",
-    "c_reasons": "Reasons: {}"
+    "c_reasons": "Reasons: {}",
+    "tab_overview": "Overview",
+    "o_users": "Accounts",
+    "o_new": "New (7 days)",
+    "o_locked": "Locked",
+    "o_visible": "Live posts",
+    "o_pending": "Awaiting review",
+    "o_likes": "Likes",
+    "o_featured": "Featured",
+    "o_authors": "Authors",
+    "o_reports": "Reports",
+    "o_top": "Most liked",
+    "o_top_empty": "No liked posts yet.",
+    "ann_title": "Announcement",
+    "ann_desc": "Shown at the top of everyone's Home and Community tabs. Same moderation as posts (no links, no banned words).",
+    "ann_hint": "e.g. This week, share your vegetarian dishes!",
+    "ann_save": "Publish",
+    "ann_clear": "Remove",
+    "ann_saved": "Announcement published",
+    "ann_cleared": "Announcement removed",
+    "ann_rejected": "The announcement has a link, a banned word, or is too long.",
+    "ann_failed": "Couldn't save the announcement, try again.",
+    "home_title": "Admin dashboard",
+    "home_desc": "Stats, review queue, announcements",
+    "home_pending": {
+      "one": "{} post to review",
+      "other": "{} posts to review"
+    },
+    "home_visible": {
+      "one": "{} live post",
+      "other": "{} live posts"
+    }
   },
   "nav": {
     "home": "Home",

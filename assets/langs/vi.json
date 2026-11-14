@@ -63,7 +63,31 @@
     "issue_tooFewSteps": "Cần ít nhất 2 bước nấu.",
     "issue_tooManySteps": "Tối đa 50 bước.",
     "issue_stepTooShort": "Mỗi bước nấu cần mô tả rõ hơn (ít nhất 8 ký tự).",
-    "issue_tooManyTags": "Tối đa 10 thẻ."
+    "issue_tooManyTags": "Tối đa 10 thẻ.",
+    "like": "Thích",
+    "unlike": "Bỏ thích",
+    "likes_n": {
+      "one": "{} lượt thích",
+      "other": "{} lượt thích"
+    },
+    "like_failed": "Chưa thích được bài này, hãy kiểm tra kết nối.",
+    "featured_badge": "Nổi bật",
+    "admin_badge": "Quản trị viên",
+    "announcement": "Thông báo",
+    "announcement_hide": "Ẩn thông báo",
+    "sort_newest": "Mới nhất",
+    "sort_popular": "Được thích nhiều",
+    "featured": "Nổi bật tuần này",
+    "admin_tools": "Công cụ quản trị",
+    "feature": "Ghim nổi bật",
+    "unfeature": "Bỏ ghim",
+    "featured_done": "Đã ghim bài lên mục Nổi bật",
+    "unfeatured_done": "Đã bỏ ghim",
+    "admin_hide": "Ẩn bài",
+    "admin_hidden": "Đã ẩn bài (vào hàng chờ duyệt)",
+    "admin_restored": "Đã khôi phục bài",
+    "admin_remove_confirm": "Gỡ bài này khỏi cộng đồng?",
+    "admin_removed": "Đã gỡ bài"
   },
   "meal_plans": "Món ăn",
   "time": "Thời gian",
@@ -358,7 +382,8 @@
     "section_about": "Giới thiệu",
     "about_desc": "Công thức, thực đơn tuần và đi chợ cho bếp nhà bạn.",
     "version": "Bản {}",
-    "about_author": "Phát triển bởi Trần Đình Danh – Đại học Phenikaa"
+    "about_author": "Phát triển bởi Trần Đình Danh – Đại học Phenikaa",
+    "admin_badge": "Quản trị viên"
   },
   "common": {
     "save": "Lưu",
@@ -402,7 +427,38 @@
     "c_restore": "Khôi phục",
     "c_remove": "Gỡ bài",
     "c_note": "Kiểm duyệt tự động bằng Firestore rules: chặn bài thiếu nội dung, chữ vô nghĩa, link, từ cấm và đăng dồn dập; bài đủ 3 báo cáo tự ẩn và vào hàng chờ này.",
-    "c_reasons": "Lý do: {}"
+    "c_reasons": "Lý do: {}",
+    "tab_overview": "Tổng quan",
+    "o_users": "Tài khoản",
+    "o_new": "Mới 7 ngày",
+    "o_locked": "Bị khoá",
+    "o_visible": "Bài đang hiện",
+    "o_pending": "Chờ duyệt",
+    "o_likes": "Lượt thích",
+    "o_featured": "Bài nổi bật",
+    "o_authors": "Người đăng",
+    "o_reports": "Báo cáo",
+    "o_top": "Được thích nhiều nhất",
+    "o_top_empty": "Chưa có bài nào được thích.",
+    "ann_title": "Thông báo chung",
+    "ann_desc": "Hiện ở đầu Trang chủ và tab Cộng đồng của mọi người. Cùng bộ kiểm duyệt với bài đăng (không link, không từ cấm).",
+    "ann_hint": "Ví dụ: Tuần này cùng chia sẻ món chay nhé!",
+    "ann_save": "Đăng",
+    "ann_clear": "Gỡ thông báo",
+    "ann_saved": "Đã đăng thông báo",
+    "ann_cleared": "Đã gỡ thông báo",
+    "ann_rejected": "Thông báo có link, từ cấm hoặc quá dài.",
+    "ann_failed": "Không lưu được thông báo, hãy thử lại.",
+    "home_title": "Bảng quản trị",
+    "home_desc": "Số liệu, duyệt bài, thông báo chung",
+    "home_pending": {
+      "one": "{} bài chờ duyệt",
+      "other": "{} bài chờ duyệt"
+    },
+    "home_visible": {
+      "one": "{} bài đang hiện",
+      "other": "{} bài đang hiện"
+    }
   },
   "nav": {
     "home": "Trang chủ",

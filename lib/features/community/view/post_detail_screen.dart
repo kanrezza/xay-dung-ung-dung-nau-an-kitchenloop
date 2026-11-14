@@ -7,6 +7,9 @@ import '../../recipes/view/widgets/detail_header.dart';
 import '../../recipes/view/widgets/recipe_sections.dart';
 import '../models/community_post.dart';
 import '../providers/community_provider.dart';
+import '../../admin/providers/admin_status_provider.dart';
+import 'widgets/admin_post_tools.dart';
+import 'widgets/like_button.dart';
 import 'widgets/post_card.dart';
 
 /// Xem một bài cộng đồng: nguyên liệu, các bước; lưu vào sổ, báo cáo (bài người khác), gỡ (bài mình).
@@ -81,8 +84,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final post = widget.post;
-    final provider = context.read<CommunityProvider>();
+    final provider = context.watch<CommunityProvider>();
+    // Bản mới nhất từ danh sách (sau khi thích/ghim); bài ẩn không có trong danh sách thì dùng bản được truyền vào.
+    final post = provider.postById(widget.post.id) ?? widget.post;
+    final isAdmin = context.watch<AdminStatusProvider>().isAdmin;
+    final badges = postBadges(post);
     final mine = post.authorId == provider.currentUid;
     final textTheme = Theme.of(context).textTheme;
     final recipe = post.toRecipe();
@@ -100,6 +106,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
             sliver: SliverList.list(
               children: [
+                if (badges.isNotEmpty) ...[Wrap(spacing: 6, children: badges), const SizedBox(height: 6)],
                 Text(post.title, style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 Text(
@@ -120,14 +127,24 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 ),
                 if (post.note.isNotEmpty) ...[const SizedBox(height: 12), Text(post.note, style: textTheme.bodyLarge)],
                 const SizedBox(height: 16),
-                if (!mine)
-                  FilledButton.icon(
-                    key: const Key('save_post'),
-                    onPressed: _busy ? null : _save,
-                    icon: const Icon(Icons.bookmark_add_outlined),
-                    label: Text('community.save'.tr()),
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                  ),
+                Row(
+                  children: [
+                    if (!mine) ...[
+                      Expanded(
+                        child: FilledButton.icon(
+                          key: const Key('save_post'),
+                          onPressed: _busy ? null : _save,
+                          icon: const Icon(Icons.bookmark_add_outlined),
+                          label: Text('community.save'.tr()),
+                          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    LikeButton(post: post),
+                  ],
+                ),
+                if (isAdmin) ...[const SizedBox(height: 12), AdminPostTools(post: post)],
                 const SizedBox(height: 24),
                 Text('recipes.ingredients'.tr(), style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),

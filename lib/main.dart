@@ -15,7 +15,9 @@ import 'features/account/data/profile_repository.dart';
 import 'features/account/providers/profile_provider.dart';
 import 'features/account/providers/theme_mode_provider.dart';
 import 'features/admin/data/admin_repository.dart';
+import 'features/admin/providers/admin_status_provider.dart';
 import 'features/community/data/community_repository.dart';
+import 'features/community/providers/announcement_provider.dart';
 import 'features/community/providers/community_provider.dart';
 import 'features/planner/data/planner_repository.dart';
 import 'features/planner/providers/meal_plan_provider.dart';
@@ -138,6 +140,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (ctx) => CommunityProvider(repository: ctx.read<CommunityRepository>(), recipes: ctx.read<RecipeRepository>()),
         ),
+        // Thông báo chung của quản trị viên (spec 007).
+        ChangeNotifierProvider(create: (ctx) => AnnouncementProvider(repository: ctx.read<CommunityRepository>())),
         // Chế độ nấu: phiên nấu dở (cục bộ), báo hết giờ ở nền, giữ màn hình sáng.
         Provider<CookingSessionStore>(
           create: (_) => CookingSessionStore(uidGetter: () => FirebaseAuth.instance.currentUser?.uid),
@@ -148,6 +152,8 @@ class MyApp extends StatelessWidget {
         Provider<AdminRepository>(
           create: (_) => FirestoreAdminRepository(firestore: FirebaseFirestore.instance, auth: FirebaseAuth.instance),
         ),
+        // Ẩn/hiện công cụ quản trị theo phiên đăng nhập (spec 007).
+        ChangeNotifierProvider(create: (ctx) => AdminStatusProvider(repository: ctx.read<AdminRepository>())),
         // Đăng xuất phải huỷ mọi hẹn giờ của tài khoản đang đăng nhập.
         Provider<AccountActions>(
           create: (ctx) => AccountActions.firebase(

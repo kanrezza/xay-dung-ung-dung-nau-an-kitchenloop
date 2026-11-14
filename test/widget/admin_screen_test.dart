@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:btl_ltdd/features/admin/data/admin_repository.dart';
+import 'package:btl_ltdd/features/community/data/community_repository.dart';
+import 'package:btl_ltdd/features/community/models/community_post.dart';
+import 'package:btl_ltdd/features/community/providers/announcement_provider.dart';
 import 'package:btl_ltdd/features/admin/models/admin_user.dart';
 import 'package:btl_ltdd/features/admin/view/admin_screen.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -8,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/community_fakes.dart';
 
 class FakeAdminRepository implements AdminRepository {
   FakeAdminRepository(this.users);
@@ -53,8 +58,10 @@ void main() {
 
   final now = DateTime(2026, 11, 14);
   late FakeAdminRepository repo;
+  late FakeCommunityRepository community;
 
   setUp(() {
+    community = FakeCommunityRepository(uid: 'boss', now: () => now);
     repo = FakeAdminRepository([
       AdminUser(id: 'boss', name: 'Quản trị', email: 'boss@example.com', createdAt: DateTime(2026, 1, 1)),
       AdminUser(id: 'an', name: 'An', email: 'an@example.com', createdAt: DateTime(2026, 11, 12)),
@@ -62,7 +69,7 @@ void main() {
     ]);
   });
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {String? tab = 'admin_tab_users'}) async {
     await tester.runAsync(() async {
       await tester.pumpWidget(
         EasyLocalization(
@@ -72,8 +79,12 @@ void main() {
           startLocale: const Locale('vi'),
           saveLocale: false,
           child: Builder(
-            builder: (context) => Provider<AdminRepository>.value(
-              value: repo,
+            builder: (context) => MultiProvider(
+              providers: [
+                Provider<AdminRepository>.value(value: repo),
+                Provider<CommunityRepository>.value(value: community),
+                ChangeNotifierProvider(create: (_) => AnnouncementProvider(repository: community)),
+              ],
               child: MaterialApp(
                 localizationsDelegates: context.localizationDelegates,
                 supportedLocales: context.supportedLocales,
@@ -87,6 +98,10 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 300));
     });
     await tester.pumpAndSettle();
+    if (tab != null) {
+      await tester.tap(find.byKey(Key(tab)));
+      await tester.pumpAndSettle();
+    }
   }
 
   String statText(WidgetTester tester, String key) => tester
@@ -155,5 +170,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Chi'), findsOneWidget);
     expect(find.text('An'), findsNothing);
+  });
+
+  testWidgets('Tổng quan (spec 007): số liệu chung và đăng thông báo chung', (tester) async {
+    community.posts['an_r1'] = CommunityPost.fromMap('an_r1', {
+      'authorId': 'an',
+      'authorName': 'An',
+      'title': 'Phở gà',
+      'status': 'visible',
+      'likedBy': ['x', 'y'],
+      'featured': true,
+    });
+    community.posts['an_r2'] =
+        CommunityPost.fromMap('an_r2', {'authorId': 'an', 'authorName': 'An', 'title': 'Bún chả', 'status': 'hidden'});
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pump(tester, tab: null);
+    expect(statText(tester, 'o_users'), '3');
+    expect(statText(tester, 'o_locked'), '1');
+    expect(statText(tester, 'o_visible'), '1');
+    expect(statText(tester, 'o_pending'), '1');
+    expect(statText(tester, 'o_likes'), '2');
+    expect(statText(tester, 'o_featured'), '1');
+    expect(find.byKey(const Key('top_an_r1')), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('announcement_field')));
+    await tester.enterText(find.byKey(const Key('announcement_field')), 'Xem shop.vn nhé');
+    await tester.tap(find.byKey(const Key('announcement_save')));
+    await tester.pumpAndSettle();
+    expect(community.announcement, '', reason: 'có link thì không gửi');
+    await tester.enterText(find.byKey(const Key('announcement_field')), 'Tuần này: món chay!');
+    await tester.tap(find.byKey(const Key('announcement_save')));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pumpAndSettle();
+    expect(community.announcement, 'Tuần này: món chay!');
   });
 }

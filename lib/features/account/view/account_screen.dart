@@ -156,6 +156,23 @@ class _AccountScreenState extends State<AccountScreen> {
                   ],
                 ),
                 Text(email, style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                FutureBuilder<bool>(
+                  future: _isAdmin,
+                  builder: (context, snap) => snap.data != true
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Chip(
+                            key: const Key('admin_badge'),
+                            avatar: Icon(Icons.verified, size: 18, color: scheme.onTertiaryContainer),
+                            label: Text('account.admin_badge'.tr()),
+                            backgroundColor: scheme.tertiaryContainer,
+                            labelStyle: TextStyle(color: scheme.onTertiaryContainer, fontWeight: FontWeight.w700),
+                            side: BorderSide.none,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [

@@ -1,3 +1,6 @@
+import 'package:btl_ltdd/features/admin/data/admin_repository.dart';
+import 'package:btl_ltdd/features/admin/providers/admin_status_provider.dart';
+import 'package:btl_ltdd/features/community/providers/announcement_provider.dart';
 import 'package:btl_ltdd/features/community/data/community_repository.dart';
 import 'package:btl_ltdd/features/community/providers/community_provider.dart';
 import 'package:btl_ltdd/features/account/providers/profile_provider.dart';
@@ -96,6 +99,9 @@ void main() {
                 ),
                 Provider<CommunityRepository>.value(value: FakeCommunityRepository()),
                 ChangeNotifierProvider(create: (ctx) => CommunityProvider(repository: ctx.read<CommunityRepository>(), recipes: repo)),
+                ChangeNotifierProvider(create: (ctx) => AnnouncementProvider(repository: ctx.read<CommunityRepository>())),
+                Provider<AdminRepository>.value(value: StubAdminRepository()),
+                ChangeNotifierProvider(create: (ctx) => AdminStatusProvider(repository: ctx.read<AdminRepository>())),
                 ChangeNotifierProvider(create: (_) => ProfileProvider(repository: FakeProfileRepository())),
                 ChangeNotifierProvider(create: (_) => ThemeModeProvider()),
                 Provider<CookingSessionStore>.value(value: CookingSessionStore(uidGetter: () => 'alice')),

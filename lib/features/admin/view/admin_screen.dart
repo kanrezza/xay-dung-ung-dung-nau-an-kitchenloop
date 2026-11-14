@@ -6,6 +6,7 @@ import '../data/admin_repository.dart';
 import '../domain/admin_stats.dart';
 import '../models/admin_user.dart';
 import '../../community/view/admin_community_tab.dart';
+import 'admin_overview_tab.dart';
 import 'widgets/admin_widgets.dart';
 
 /// Quản trị tối thiểu (spec 002): thống kê tài khoản, tìm kiếm, khoá/mở khoá.
@@ -79,24 +80,25 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    // Hai mục: Tài khoản (spec 002) và Cộng đồng (spec 004: thống kê, hàng chờ duyệt).
+    // Ba mục: Tổng quan (spec 007), Tài khoản (spec 002), Cộng đồng (spec 004: thống kê, hàng chờ duyệt).
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Text('admin.title'.tr()),
           bottom: TabBar(tabs: [
-            Tab(
-                key: const Key('admin_tab_users'),
-                icon: const Icon(Icons.people_outline),
-                text: 'admin.tab_users'.tr()),
-            Tab(
-                key: const Key('admin_tab_community'),
-                icon: const Icon(Icons.public),
-                text: 'admin.tab_community'.tr()),
+            Tab(key: const Key('admin_tab_overview'), icon: const Icon(Icons.dashboard_outlined), text: 'admin.tab_overview'.tr()),
+            Tab(key: const Key('admin_tab_users'), icon: const Icon(Icons.people_outline), text: 'admin.tab_users'.tr()),
+            Tab(key: const Key('admin_tab_community'), icon: const Icon(Icons.public), text: 'admin.tab_community'.tr()),
           ]),
         ),
         body: TabBarView(children: [
+          Builder(
+            builder: (tabContext) => AdminOverviewTab(
+              now: widget.now,
+              onOpenQueue: () => DefaultTabController.of(tabContext).animateTo(2),
+            ),
+          ),
           StreamBuilder<List<AdminUser>>(
             stream: _users,
             builder: (context, snapshot) {

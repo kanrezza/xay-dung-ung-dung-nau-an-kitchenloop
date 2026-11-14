@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../account/providers/profile_provider.dart';
 import '../../account/view/widgets/user_avatar.dart';
+import '../../admin/view/widgets/admin_home_card.dart';
+import '../../community/view/widgets/announcement_banner.dart';
 import '../../planner/domain/shopping_builder.dart';
 import '../../planner/providers/meal_plan_provider.dart';
 import '../../planner/providers/shopping_provider.dart';
@@ -120,6 +122,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              // Thông báo chung và lối vào quản trị (spec 007); tự ẩn khi không có / không phải quản trị viên.
+              const AnnouncementBanner(),
+              const AdminHomeCard(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 // Ba ô luôn cao bằng nhau dù nhãn dài ngắn khác nhau.

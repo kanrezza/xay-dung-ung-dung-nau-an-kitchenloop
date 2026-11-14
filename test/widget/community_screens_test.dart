@@ -1,3 +1,7 @@
+import 'package:btl_ltdd/features/admin/data/admin_repository.dart';
+import 'package:btl_ltdd/features/admin/providers/admin_status_provider.dart';
+import 'package:btl_ltdd/features/admin/view/widgets/admin_home_card.dart';
+import 'package:btl_ltdd/features/community/providers/announcement_provider.dart';
 import 'package:btl_ltdd/features/community/data/community_repository.dart';
 import 'package:btl_ltdd/features/community/models/community_post.dart';
 import 'package:btl_ltdd/features/community/providers/community_provider.dart';
@@ -67,7 +71,7 @@ void main() {
     }
   }
 
-  Future<void> pump(WidgetTester tester, Widget home) async {
+  Future<void> pump(WidgetTester tester, Widget home, {bool admin = false}) async {
     tester.view.physicalSize = const Size(900, 2600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -89,6 +93,9 @@ void main() {
                 ChangeNotifierProvider(create: (ctx) => MealPlanProvider(repository: ctx.read<PlannerRepository>())),
                 Provider<CommunityRepository>.value(value: community),
                 ChangeNotifierProvider(create: (_) => CommunityProvider(repository: community, recipes: recipes)),
+                ChangeNotifierProvider(create: (_) => AnnouncementProvider(repository: community)),
+                Provider<AdminRepository>.value(value: StubAdminRepository(admin: admin)),
+                ChangeNotifierProvider(create: (ctx) => AdminStatusProvider(repository: ctx.read<AdminRepository>())),
               ],
               child: MaterialApp(
                 localizationsDelegates: context.localizationDelegates,
@@ -235,5 +242,90 @@ void main() {
     expect(community.posts['binh_tc']!.status, PostStatus.visible);
     expect(community.posts['binh_tc']!.reportCount, 0);
     expect(find.text('Không có bài nào chờ duyệt.'), findsOneWidget);
+  });
+
+  group('spec 007', () {
+    int likes(String id) => community.posts[id]!.likeCount;
+
+    testWidgets('thích bài người khác trên thẻ; bài của mình không thích được', (tester) async {
+      await pump(tester, const CommunityScreen());
+      await tester.tap(find.byKey(const Key('like_binh_tc')));
+      await settle(tester);
+      expect(community.posts['binh_tc']!.isLikedBy('alice'), isTrue);
+      expect(find.descendant(of: find.byKey(const Key('like_binh_tc')), matching: find.text('1')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('like_binh_tc')));
+      await settle(tester);
+      expect(likes('binh_tc'), 0);
+      await tester.tap(find.byKey(const Key('like_alice_tk')));
+      await settle(tester);
+      expect(likes('alice_tk'), 0);
+    });
+
+    testWidgets('xếp theo lượt thích; lọc theo thẻ; dải Nổi bật', (tester) async {
+      community.posts['binh_ph'] = community.posts['binh_ph']!.copyWith(likedBy: ['x', 'y'], featured: true);
+      community.posts['binh_tc'] = CommunityPost.fromMap('binh_tc', {
+        ..._post('binh', 'Trứng chiên hành'),
+        'tags': ['sáng']
+      });
+      await pump(tester, const CommunityScreen());
+      expect(find.byKey(const Key('featured_binh_ph')), findsOneWidget);
+      double y(String t) => tester.getTopLeft(find.byKey(Key('post_$t'))).dy;
+      expect(y('binh_tc') < y('binh_ph'), isTrue);
+      await tester.tap(find.byKey(const Key('sort_popular')));
+      await settle(tester);
+      expect(y('binh_ph') < y('binh_tc'), isTrue);
+      await tester.tap(find.byKey(const Key('tag_sáng')));
+      await settle(tester);
+      expect(find.byKey(const Key('post_binh_tc')), findsOneWidget);
+      expect(find.byKey(const Key('post_binh_ph')), findsNothing);
+      expect(find.byKey(const Key('featured_strip')), findsNothing, reason: 'đang lọc thì ẩn dải nổi bật');
+    });
+
+    testWidgets('thông báo chung hiện ở Cộng đồng, ẩn được trên máy', (tester) async {
+      community.announcement = 'Tuần này: món chay';
+      await pump(tester, const CommunityScreen());
+      expect(find.text('Tuần này: món chay'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('announcement_close')));
+      await settle(tester);
+      expect(find.text('Tuần này: món chay'), findsNothing);
+      await community.setAnnouncement('Thông báo mới');
+      await settle(tester);
+      expect(find.text('Thông báo mới'), findsOneWidget, reason: 'nội dung mới thì hiện lại');
+    });
+
+    testWidgets('người thường không thấy công cụ quản trị', (tester) async {
+      await pump(tester, const CommunityScreen());
+      await tester.tap(find.text('Trứng chiên hành'));
+      await settle(tester);
+      expect(find.byKey(const Key('admin_post_tools')), findsNothing);
+    });
+
+    testWidgets('quản trị viên ghim nổi bật rồi ẩn bài từ màn xem bài', (tester) async {
+      await pump(tester, const CommunityScreen(), admin: true);
+      await tester.tap(find.text('Trứng chiên hành'));
+      await settle(tester);
+      await tester.ensureVisible(find.byKey(const Key('admin_feature')));
+      await tester.tap(find.byKey(const Key('admin_feature')));
+      await settle(tester);
+      expect(community.posts['binh_tc']!.featured, isTrue);
+      expect(find.text('Nổi bật'), findsWidgets);
+      await tester.ensureVisible(find.byKey(const Key('admin_hide')));
+      await tester.tap(find.byKey(const Key('admin_hide')));
+      await settle(tester);
+      expect(community.posts['binh_tc']!.status, PostStatus.hidden);
+      expect(find.byKey(const Key('post_binh_tc')), findsNothing);
+    });
+
+    testWidgets('thẻ Bảng quản trị: chỉ quản trị viên thấy, có số bài chờ duyệt', (tester) async {
+      community.posts['binh_tc'] = community.posts['binh_tc']!.copyWith(status: PostStatus.hidden);
+      await pump(tester, const Scaffold(body: AdminHomeCard()), admin: true);
+      expect(find.byKey(const Key('admin_home_card')), findsOneWidget);
+      expect(find.text('1 bài chờ duyệt · 2 bài đang hiện'), findsOneWidget);
+    });
+
+    testWidgets('thẻ Bảng quản trị ẩn với người thường', (tester) async {
+      await pump(tester, const Scaffold(body: AdminHomeCard()));
+      expect(find.byKey(const Key('admin_home_card')), findsNothing);
+    });
   });
 }

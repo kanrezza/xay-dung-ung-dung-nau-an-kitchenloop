@@ -13,6 +13,8 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:btl_ltdd/features/admin/providers/admin_status_provider.dart';
+import 'package:btl_ltdd/features/community/providers/announcement_provider.dart';
 import 'package:btl_ltdd/app_theme.dart';
 import 'package:btl_ltdd/features/admin/data/admin_repository.dart';
 import 'package:btl_ltdd/features/admin/view/admin_screen.dart';
@@ -221,6 +223,8 @@ Future<void> _pump(WidgetTester tester, _Env env, Widget home, {String locale = 
               Provider<ScreenAwake>.value(value: env.awake),
               Provider<CommunityRepository>.value(value: env.community),
               ChangeNotifierProvider(create: (_) => CommunityProvider(repository: env.community, recipes: env.repo)),
+              ChangeNotifierProvider(create: (_) => AnnouncementProvider(repository: env.community)),
+              ChangeNotifierProvider(create: (_) => AdminStatusProvider(repository: env.admin)),
               Provider<PlannerRepository>.value(value: env.planner),
               ChangeNotifierProvider(create: (_) => ProfileProvider(repository: FakeProfileRepository())),
               ChangeNotifierProvider(create: (_) => ThemeModeProvider()),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../home/view/widgets/recipe_cover.dart';
 import '../../../recipes/view/display_helpers.dart';
 import '../../models/community_post.dart';
+import 'like_button.dart';
 
 /// "14/11" — ngày đăng ngắn gọn.
 String postDate(DateTime? d) => d == null ? '' : '${d.day}/${d.month}';
@@ -24,6 +25,7 @@ class PostCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final secs = post.steps.fold<int>(0, (sum, s) => sum + (s.durationSec ?? 0));
+    final badges = postBadges(post);
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -42,8 +44,12 @@ class PostCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      if (badges.isNotEmpty) ...[
+                        Wrap(spacing: 4, children: badges),
+                        const SizedBox(height: 4),
+                      ],
                       Text(post.title,
-                          maxLines: 2,
+                          maxLines: badges.isEmpty ? 2 : 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 4),
@@ -77,6 +83,8 @@ class PostCard extends StatelessWidget {
                   ),
                 ),
               ),
+              Center(child: LikeButton(post: post, compact: true)),
+              const SizedBox(width: 4),
             ],
           ),
         ),
