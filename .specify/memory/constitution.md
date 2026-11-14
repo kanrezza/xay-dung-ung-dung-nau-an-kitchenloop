@@ -51,7 +51,10 @@ Lý do: người dùng nấu ăn trong bếp, mạng thường không ổn đị
 Áp dụng YAGNI: không thêm tính năng ngoài spec đang làm. Phần mạng xã hội của app cũ
 (follow, bình luận, cộng đồng) MUST NOT được đưa vào KitchenLoop trừ khi có spec và sửa đổi
 constitution này cho phép. Phần quản trị chỉ ở mức tối thiểu (thống kê tài khoản, khoá/mở
-khoá tài khoản) và MUST đi qua spec riêng.
+khoá tài khoản) và MUST đi qua spec riêng. Ngoại lệ duy nhất cho phần cộng đồng: **chia sẻ
+công thức** (spec 004), với điều kiện mọi bài đăng MUST qua kiểm duyệt tự động ở tầng
+Firestore rules (không chỉ ở ứng dụng) và có cơ chế báo cáo; follow, bình luận, nhắn tin
+vẫn MUST NOT có.
 Lý do: giữ app tập trung vào vòng nấu ăn và khác biệt rõ với bài tham khảo.
 
 ## Ràng buộc bổ sung
@@ -77,6 +80,9 @@ Lý do: giữ app tập trung vào vòng nấu ăn và khác biệt rõ với b�
   nguyên tắc III (quyền admin chỉ qua custom claim, admin không đọc công thức riêng) và
   VII (phạm vi quản trị). Không ảnh hưởng spec 001.
 
+- **1.2.0** (2026-11-14, MINOR): cho phép chia sẻ công thức lên cộng đồng (spec 004) với
+  kiểm duyệt tự động bằng rules và báo cáo. Mở rộng nguyên tắc VII. Không ảnh hưởng spec 001–003.
+
 ## Governance
 
 Constitution này có hiệu lực cao hơn các quy ước khác trong dự án. Sửa đổi MUST được ghi
@@ -86,4 +92,4 @@ kể; PATCH khi chỉnh lời văn. Mọi plan và pull request MUST kiểm tra 
 tắc trên; vi phạm phải được giải thích và chấp thuận rõ ràng. Hướng dẫn vận hành hằng
 ngày cho Claude nằm ở `CLAUDE.md`.
 
-**Version**: 1.1.0 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-14
+**Version**: 1.2.0 | **Ratified**: 2026-11-12 | **Last Amended**: 2026-11-14
