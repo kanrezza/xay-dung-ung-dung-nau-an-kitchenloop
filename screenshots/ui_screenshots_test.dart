@@ -16,6 +16,10 @@ import 'dart:ui' as ui;
 import 'package:btl_ltdd/app_theme.dart';
 import 'package:btl_ltdd/features/admin/data/admin_repository.dart';
 import 'package:btl_ltdd/features/admin/view/admin_screen.dart';
+import 'package:btl_ltdd/features/community/data/community_repository.dart';
+import 'package:btl_ltdd/features/community/models/community_post.dart';
+import 'package:btl_ltdd/features/community/providers/community_provider.dart';
+import 'package:btl_ltdd/features/community/view/admin_community_tab.dart';
 import 'package:btl_ltdd/features/home/view/app_shell.dart';
 import 'package:btl_ltdd/features/planner/data/planner_repository.dart';
 import 'package:btl_ltdd/features/planner/models/shopping_state.dart';
@@ -50,6 +54,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../test/support/cooking_fakes.dart';
+import '../test/support/community_fakes.dart';
 import '../test/support/planner_fakes.dart';
 
 const _outDir = 'screenshots/out';
@@ -177,6 +182,7 @@ class _Env {
   final awake = FakeScreenAwake();
   final account = AccountActions(emailGetter: () => 'an.nguyen@example.com', signOutCallback: () async {});
   final planner = FakePlannerRepository();
+  final community = FakeCommunityRepository(now: () => _now);
 }
 
 /// "Bây giờ" cố định cho ảnh chụp: thứ 4, 11/11/2026 lúc 18 giờ (bữa tối, tuần 9/11).
@@ -210,6 +216,8 @@ Future<void> _pump(WidgetTester tester, _Env env, Widget home, {String locale = 
               Provider<CookingSessionStore>.value(value: env.store),
               Provider<TimerNotifier>.value(value: env.notifier),
               Provider<ScreenAwake>.value(value: env.awake),
+              Provider<CommunityRepository>.value(value: env.community),
+              ChangeNotifierProvider(create: (_) => CommunityProvider(repository: env.community, recipes: env.repo)),
               Provider<PlannerRepository>.value(value: env.planner),
               ChangeNotifierProvider(create: (_) => MealPlanProvider(repository: env.planner, now: () => _now)),
               ChangeNotifierProxyProvider<MealPlanProvider, ShoppingProvider>(
@@ -542,6 +550,52 @@ void main() {
     await _capture(tester, '22_che_do_toi');
   });
 
+  /// Bài cộng đồng mẫu: vài bài của người khác, một bài của mình, một bài bị ẩn do báo cáo.
+  void seedCommunity(_Env env) {
+    Map<String, dynamic> post(String author, String name, String title, int day, {String status = 'visible', int reports = 0, int secs = 600}) => {
+          'authorId': author,
+          'authorName': name,
+          'sourceRecipeId': title,
+          'title': title,
+          'note': '',
+          'baseServings': 2,
+          'ingredients': [_ing('a', 'nguyên liệu chính', 300, 'g'), _ing('b', 'gia vị', 1, 'muỗng canh')],
+          'steps': [_step('s1', 1, 'Sơ chế nguyên liệu sạch sẽ.', secs), _step('s2', 2, 'Nấu chín và nêm vừa ăn.')],
+          'tags': <String>[],
+          'status': status,
+          'reportCount': reports,
+          'createdAt': DateTime(2026, 11, day, 9),
+        };
+    void add(String id, Map<String, dynamic> m) => env.community.posts[id] = CommunityPost.fromMap(id, m);
+    add('b1', post('u2', 'Bình Trần', 'Bún bò Huế', 11, secs: 7200));
+    add('b2', post('u3', 'Chi Lê', 'Gỏi cuốn tôm thịt', 10, secs: 1200));
+    add('b3', post('alice', 'An Nguyễn', 'Thịt kho trứng', 9, secs: 4500));
+    add('b4', post('u4', 'Dũng Phạm', 'Cá kho tộ', 8, secs: 3600));
+    add('b5', post('u5', 'Em Võ', 'Chè đậu xanh', 6, secs: 2400));
+    add('b6', post('u6', 'Tài khoản lạ', 'Món ngon khó cưỡng', 11, status: 'hidden', reports: 3));
+    env.community.reports['b6'] = const [
+      PostReport(reporterId: 'x', reason: ReportReason.notRecipe),
+      PostReport(reporterId: 'y', reason: ReportReason.spam),
+    ];
+  }
+
+  testWidgets('23 cộng đồng', (tester) async {
+    final env = _Env();
+    await _seed(env.db);
+    seedCommunity(env);
+    await _pump(tester, env, AppShell(loginBuilder: (_) => const Scaffold(), initialTab: 4));
+    await settleShell(tester);
+    await _capture(tester, '23_cong_dong');
+  });
+
+  testWidgets('24 quản trị cộng đồng', (tester) async {
+    final env = _Env();
+    seedCommunity(env);
+    await _pump(tester, env, Scaffold(appBar: AppBar(title: const Text('Quản trị · Cộng đồng')), body: AdminCommunityTab(now: () => _now)));
+    await settleShell(tester);
+    await _capture(tester, '24_quan_tri_cong_dong');
+  });
+
   testWidgets('16 danh sách bằng tiếng Anh', (tester) async {
     final env = _Env();
     await _seed(env.db);
@@ -607,6 +661,8 @@ void main() {
       '20_thuc_don_tuan': 'Thực đơn tuần',
       '21_di_cho': 'Đi chợ (tự gộp nguyên liệu)',
       '22_che_do_toi': 'Chế độ tối',
+      '23_cong_dong': 'Cộng đồng (đã kiểm duyệt)',
+      '24_quan_tri_cong_dong': 'Quản trị: thống kê, hàng chờ duyệt',
     };
     final names = captions.keys.where((n) => File('$_outDir/$n.png').existsSync()).toList();
     final images = <String, ui.Image>{};
